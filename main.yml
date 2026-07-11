@@ -1,0 +1,2315 @@
+name: 构建果翼飞翔 APK
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fruit-flight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 配置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: 配置 Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: 生成完整 Android 游戏项目
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p app/src/main/java/com/qili/fruitflight
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+
+          cat > settings.gradle <<'GRADLE'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "FruitFlight"
+          include(":app")
+          GRADLE
+
+          cat > build.gradle <<'GRADLE'
+          plugins {
+              id "com.android.application" version "8.6.1" apply false
+          }
+          GRADLE
+
+          cat > gradle.properties <<'PROPERTIES'
+          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          PROPERTIES
+
+          cat > app/build.gradle <<'GRADLE'
+          plugins {
+              id "com.android.application"
+          }
+
+          android {
+              namespace "com.qili.fruitflight"
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId "com.qili.fruitflight"
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")
+                  }
+              }
+
+              lint {
+                  abortOnError false
+              }
+          }
+          GRADLE
+
+          cat > app/src/main/AndroidManifest.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:allowBackup="true"
+                  android:icon="@drawable/ic_launcher"
+                  android:roundIcon="@drawable/ic_launcher"
+                  android:label="果翼飞翔"
+                  android:supportsRtl="true"
+                  android:theme="@style/AppTheme">
+                  <activity
+                      android:name=".MainActivity"
+                      android:configChanges="orientation|screenSize|keyboardHidden"
+                      android:exported="true"
+                      android:screenOrientation="portrait">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          XML
+
+          cat > app/src/main/res/values/styles.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowFullscreen">true</item>
+                  <item name="android:windowActionModeOverlay">true</item>
+                  <item name="android:colorAccent">#FFD34E</item>
+                  <item name="android:navigationBarColor">#071A25</item>
+                  <item name="android:windowLightNavigationBar">false</item>
+              </style>
+          </resources>
+          XML
+
+          cat > app/src/main/res/drawable/ic_launcher.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+              <path android:fillColor="#69D4F2" android:pathData="M0,0h108v108h-108z"/>
+              <path android:fillColor="#B9F1FF" android:pathData="M0,72c20,-13 35,-9 52,-2c20,8 36,-2 56,-13v51h-108z"/>
+              <path android:fillColor="#38A74B" android:pathData="M77,55h21v53h-21z"/>
+              <path android:fillColor="#65CF5D" android:pathData="M71,49h33v14h-33z"/>
+              <path android:fillColor="#F8B82E" android:pathData="M16,43c0,-14 12,-25 27,-25c17,0 29,11 29,25c0,15 -12,26 -29,26c-15,0 -27,-11 -27,-26z"/>
+              <path android:fillColor="#FFE36A" android:pathData="M18,37c6,-13 25,-18 40,-8c-9,-2 -18,1 -24,8c-5,6 -7,14 -5,22c-8,-4 -13,-12 -13,-21z"/>
+              <path android:fillColor="#FFFFFF" android:pathData="M49,27c9,0 16,7 16,16c0,9 -7,16 -16,16c-9,0 -16,-7 -16,-16c0,-9 7,-16 16,-16z"/>
+              <path android:fillColor="#172638" android:pathData="M53,34c5,0 8,4 8,9c0,5 -3,9 -8,9c-4,0 -7,-4 -7,-9c0,-5 3,-9 7,-9z"/>
+              <path android:fillColor="#FF6A35" android:pathData="M64,43l25,8l-25,8z"/>
+              <path android:fillColor="#D9482B" android:pathData="M64,51h25l-25,8z"/>
+          </vector>
+          XML
+
+          cat > app/src/main/java/com/qili/fruitflight/MainActivity.java <<'JAVA'
+          package com.qili.fruitflight;
+
+          import android.app.Activity;
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import android.graphics.Canvas;
+          import android.graphics.Color;
+          import android.graphics.LinearGradient;
+          import android.graphics.Paint;
+          import android.graphics.Path;
+          import android.graphics.RadialGradient;
+          import android.graphics.RectF;
+          import android.graphics.Shader;
+          import android.media.AudioManager;
+          import android.media.ToneGenerator;
+          import android.os.Bundle;
+          import android.view.MotionEvent;
+          import android.view.View;
+          import android.view.Window;
+          import android.view.WindowManager;
+
+          import java.util.ArrayList;
+          import java.util.Iterator;
+          import java.util.List;
+          import java.util.Locale;
+          import java.util.Random;
+
+          public class MainActivity extends Activity {
+              private GameView gameView;
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  requestWindowFeature(Window.FEATURE_NO_TITLE);
+                  getWindow().setFlags(
+                          WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                          WindowManager.LayoutParams.FLAG_FULLSCREEN
+                  );
+                  hideSystemBars();
+                  gameView = new GameView(this);
+                  setContentView(gameView);
+              }
+
+              private void hideSystemBars() {
+                  getWindow().getDecorView().setSystemUiVisibility(
+                          View.SYSTEM_UI_FLAG_FULLSCREEN
+                                  | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                  | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                  | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                  | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                  | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                  );
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) hideSystemBars();
+              }
+
+              @Override
+              protected void onPause() {
+                  super.onPause();
+                  if (gameView != null) gameView.pauseFromSystem();
+              }
+
+              @SuppressWarnings("deprecation")
+              @Override
+              public void onBackPressed() {
+                  if (gameView != null && gameView.handleBack()) return;
+                  super.onBackPressed();
+              }
+          }
+
+          class GameView extends View {
+              private static final int 菜单 = 0;
+              private static final int 游戏中 = 1;
+              private static final int 暂停 = 2;
+              private static final int 结束 = 3;
+
+              private static final int 经典管道 = 0;
+              private static final int 危险山峰 = 1;
+              private static final int 冰天雪地 = 2;
+              private static final int 黑暗丛林 = 3;
+
+              private static final int 冲刺果实 = 0;
+              private static final int 冻结果实 = 1;
+              private static final int 无敌果实 = 2;
+              private static final int 护盾果实 = 3;
+              private static final int 随机果实 = 4;
+
+              private final Paint 画笔 = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Paint 描边 = new Paint(Paint.ANTI_ALIAS_FLAG);
+              private final Path 路径 = new Path();
+              private final Random 随机 = new Random();
+              private final SharedPreferences 存档;
+              private final ToneGenerator 音效;
+
+              private final List<管道> 管道组 = new ArrayList<>();
+              private final List<果实> 果实组 = new ArrayList<>();
+              private final List<粒子> 粒子组 = new ArrayList<>();
+              private final List<浮字> 浮字组 = new ArrayList<>();
+
+              private int 宽;
+              private int 高;
+              private float 密度;
+              private float 地面线;
+              private int 状态 = 菜单;
+              private int 当前地图 = 经典管道;
+              private int 设定生命 = 1;
+              private int 剩余生命 = 1;
+
+              private float 小鸟X;
+              private float 小鸟Y;
+              private float 小鸟速度Y;
+              private float 小鸟半径;
+              private float 小鸟旋转;
+
+              private float 经过秒数;
+              private int 跨越障碍;
+              private float 奖励分;
+              private float 难度倍率 = 1f;
+              private float 世界速度;
+              private float 下一间距;
+              private int 连续同高剩余;
+              private float 上次缺口Y;
+
+              private float 冲刺时间;
+              private float 冻结时间;
+              private float 无敌时间;
+              private float 护盾时间;
+              private boolean 护盾可挡;
+              private float 受伤冷却;
+              private float 画面震动;
+              private float 白闪;
+
+              private boolean 时间流转;
+              private float 天色相位;
+              private boolean 正在下雨;
+              private boolean 本局可能下雨;
+              private float 下雨触发时间;
+              private float 下雨持续时间;
+              private boolean 冰雹中;
+              private float 冰雹计时;
+
+              private int 猎手状态;
+              private float 猎手计时;
+              private float 猎手冷却;
+              private float 猎手X;
+              private float 猎手Y;
+              private boolean 猎手碰到;
+
+              private double 动画时间;
+              private long 上帧时间;
+              private float 提示时间;
+              private String 提示文字 = "";
+
+              private final RectF 开始按钮 = new RectF();
+              private final RectF 重来按钮 = new RectF();
+              private final RectF 返回按钮 = new RectF();
+              private final RectF 暂停按钮 = new RectF();
+              private final RectF 减生命按钮 = new RectF();
+              private final RectF 加生命按钮 = new RectF();
+              private final RectF[] 地图按钮 = {
+                      new RectF(), new RectF(), new RectF(), new RectF()
+              };
+
+              GameView(Context context) {
+                  super(context);
+                  setKeepScreenOn(true);
+                  setLayerType(View.LAYER_TYPE_HARDWARE, null);
+                  存档 = context.getSharedPreferences("果翼飞翔存档", Context.MODE_PRIVATE);
+                  音效 = new ToneGenerator(AudioManager.STREAM_MUSIC, 42);
+                  描边.setStyle(Paint.Style.STROKE);
+                  描边.setStrokeCap(Paint.Cap.ROUND);
+                  描边.setStrokeJoin(Paint.Join.ROUND);
+                  上帧时间 = System.nanoTime();
+              }
+
+              @Override
+              protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+                  宽 = w;
+                  高 = h;
+                  密度 = getResources().getDisplayMetrics().density;
+                  地面线 = 高 * 0.895f;
+                  小鸟半径 = 宽 * 0.036f;
+                  小鸟X = 宽 * 0.28f;
+                  小鸟Y = 高 * 0.47f;
+                  布置菜单按钮();
+              }
+
+              private void 布置菜单按钮() {
+                  float 卡宽 = 宽 * 0.405f;
+                  float 卡高 = 高 * 0.112f;
+                  float 左 = 宽 * 0.075f;
+                  float 右 = 宽 * 0.52f;
+                  float 上1 = 高 * 0.315f;
+                  float 上2 = 高 * 0.442f;
+                  地图按钮[0].set(左, 上1, 左 + 卡宽, 上1 + 卡高);
+                  地图按钮[1].set(右, 上1, 右 + 卡宽, 上1 + 卡高);
+                  地图按钮[2].set(左, 上2, 左 + 卡宽, 上2 + 卡高);
+                  地图按钮[3].set(右, 上2, 右 + 卡宽, 上2 + 卡高);
+
+                  float 控制Y = 高 * 0.655f;
+                  减生命按钮.set(宽 * 0.235f, 控制Y - 宽 * 0.055f,
+                          宽 * 0.345f, 控制Y + 宽 * 0.055f);
+                  加生命按钮.set(宽 * 0.655f, 控制Y - 宽 * 0.055f,
+                          宽 * 0.765f, 控制Y + 宽 * 0.055f);
+                  开始按钮.set(宽 * 0.14f, 高 * 0.805f, 宽 * 0.86f, 高 * 0.885f);
+                  重来按钮.set(宽 * 0.14f, 高 * 0.66f, 宽 * 0.86f, 高 * 0.735f);
+                  返回按钮.set(宽 * 0.14f, 高 * 0.755f, 宽 * 0.86f, 高 * 0.825f);
+                  暂停按钮.set(宽 * 0.875f, 高 * 0.028f, 宽 * 0.965f, 高 * 0.073f);
+              }
+
+              @Override
+              protected void onDraw(Canvas canvas) {
+                  super.onDraw(canvas);
+                  long 现在 = System.nanoTime();
+                  float dt = Math.min(0.034f, Math.max(0f, (现在 - 上帧时间) / 1_000_000_000f));
+                  上帧时间 = 现在;
+                  动画时间 += dt;
+
+                  if (状态 == 游戏中) {
+                      更新游戏(dt);
+                  } else {
+                      更新环境动画(dt);
+                  }
+
+                  canvas.save();
+                  if (画面震动 > 0f) {
+                      float 强度 = 宽 * 0.014f * 画面震动;
+                      canvas.translate((随机.nextFloat() - 0.5f) * 强度,
+                              (随机.nextFloat() - 0.5f) * 强度);
+                  }
+
+                  绘制背景(canvas);
+                  if (状态 == 菜单) {
+                      绘制菜单(canvas);
+                  } else {
+                      绘制游戏场景(canvas);
+                      if (状态 == 暂停) 绘制暂停层(canvas);
+                      if (状态 == 结束) 绘制结束层(canvas);
+                  }
+                  canvas.restore();
+
+                  if (白闪 > 0f) {
+                      纯色(Color.argb((int) (115 * 白闪), 255, 255, 255));
+                      canvas.drawRect(0, 0, 宽, 高, 画笔);
+                  }
+
+                  if (提示时间 > 0f && 状态 == 菜单) 绘制提示(canvas);
+                  postInvalidateOnAnimation();
+              }
+
+              private void 更新环境动画(float dt) {
+                  if (提示时间 > 0f) 提示时间 -= dt;
+                  画面震动 = Math.max(0f, 画面震动 - dt * 3.5f);
+                  白闪 = Math.max(0f, 白闪 - dt * 3f);
+                  更新粒子与浮字(dt);
+              }
+
+              private void 开始游戏() {
+                  状态 = 游戏中;
+                  剩余生命 = 设定生命;
+                  经过秒数 = 0f;
+                  跨越障碍 = 0;
+                  奖励分 = 0f;
+                  难度倍率 = 1f;
+                  小鸟Y = 高 * 0.47f;
+                  小鸟速度Y = -高 * 0.12f;
+                  小鸟旋转 = 0f;
+                  冲刺时间 = 冻结时间 = 无敌时间 = 护盾时间 = 受伤冷却 = 0f;
+                  护盾可挡 = false;
+                  画面震动 = 白闪 = 0f;
+                  管道组.clear();
+                  果实组.clear();
+                  粒子组.clear();
+                  浮字组.clear();
+                  连续同高剩余 = 0;
+                  上次缺口Y = 高 * 0.48f;
+
+                  时间流转 = 当前地图 == 危险山峰
+                          || (当前地图 == 经典管道 && 随机.nextFloat() < 0.10f);
+                  if (时间流转) {
+                      float[] 起始 = {0.04f, 0.23f, 0.50f, 0.77f};
+                      天色相位 = 起始[随机.nextInt(起始.length)] + 随机.nextFloat() * 0.06f;
+                  } else {
+                      天色相位 = 0.50f;
+                  }
+
+                  正在下雨 = 当前地图 == 黑暗丛林 && 随机.nextFloat() < 0.10f;
+                  本局可能下雨 = 当前地图 == 黑暗丛林 && !正在下雨
+                          && 随机.nextFloat() < 0.11f;
+                  下雨触发时间 = 12f + 随机.nextFloat() * 23f;
+                  下雨持续时间 = 正在下雨 ? 15f + 随机.nextFloat() * 24f : 0f;
+
+                  冰雹中 = 当前地图 == 冰天雪地 && 随机.nextFloat() < 0.24f;
+                  冰雹计时 = 冰雹中
+                          ? 2.5f + 随机.nextFloat() * 3f
+                          : 5f + 随机.nextFloat() * 9f;
+
+                  猎手状态 = 0;
+                  猎手碰到 = false;
+                  猎手冷却 = 7f + 随机.nextFloat() * 6f;
+
+                  float x = 宽 * 1.14f;
+                  for (int i = 0; i < 4; i++) {
+                      管道 p = 创建管道(x);
+                      管道组.add(p);
+                      x += p.到下一个间距;
+                  }
+                  音效.startTone(ToneGenerator.TONE_PROP_ACK, 80);
+                  上帧时间 = System.nanoTime();
+              }
+
+              private 管道 创建管道(float x) {
+                  float 缺口高 = 高 * (0.275f + 随机.nextFloat() * 0.035f);
+                  float 缺口Y;
+                  if (连续同高剩余 > 0) {
+                      缺口Y = 上次缺口Y;
+                      连续同高剩余--;
+                  } else {
+                      缺口Y = 高 * (0.33f + 随机.nextFloat() * 0.34f);
+                      缺口Y = 限制(缺口Y, 高 * 0.26f + 缺口高 * 0.5f,
+                              地面线 - 高 * 0.10f - 缺口高 * 0.5f);
+                      上次缺口Y = 缺口Y;
+                      if (随机.nextFloat() < 0.30f) 连续同高剩余 = 1 + 随机.nextInt(3);
+                  }
+
+                  管道 p = new 管道();
+                  p.x = x;
+                  p.宽度 = 宽 * (0.145f + 随机.nextFloat() * 0.018f);
+                  p.缺口Y = 缺口Y;
+                  p.缺口高 = 缺口高;
+                  float 补偿 = 1f + 0.16f * Math.max(0f, 难度倍率 - 1f);
+                  p.到下一个间距 = 宽 * (0.57f + 随机.nextFloat() * 0.13f) * 补偿;
+
+                  float r = 随机.nextFloat();
+                  float 冲刺概率 = 0.02f;
+                  float 冻结概率 = 当前地图 == 冰天雪地 ? 0.03f : 0.02f;
+                  float 无敌概率 = 0.02f;
+                  float 护盾概率 = 0.02f;
+                  float 随机概率 = 0.02f;
+                  int 类型 = -1;
+                  if (r < 冲刺概率) 类型 = 冲刺果实;
+                  else if (r < 冲刺概率 + 冻结概率) 类型 = 冻结果实;
+                  else if (r < 冲刺概率 + 冻结概率 + 无敌概率) 类型 = 无敌果实;
+                  else if (r < 冲刺概率 + 冻结概率 + 无敌概率 + 护盾概率) 类型 = 护盾果实;
+                  else if (r < 冲刺概率 + 冻结概率 + 无敌概率 + 护盾概率 + 随机概率) {
+                      类型 = 随机果实;
+                  }
+                  if (类型 >= 0) {
+                      果实 f = new 果实();
+                      f.x = x + p.宽度 * 0.5f;
+                      f.y = 缺口Y + (随机.nextFloat() - 0.5f) * 缺口高 * 0.34f;
+                      f.类型 = 类型;
+                      f.相位 = 随机.nextFloat() * 6.28f;
+                      果实组.add(f);
+                  }
+                  return p;
+              }
+
+              private void 更新游戏(float dt) {
+                  经过秒数 += dt;
+                  难度倍率 = 1f + 2.5f * (1f - (float) Math.exp(-经过秒数 / 58f));
+                  难度倍率 = Math.min(3.5f, 难度倍率);
+
+                  if (时间流转) {
+                      天色相位 += dt / 82f;
+                      if (天色相位 >= 1f) 天色相位 -= 1f;
+                  }
+
+                  float 上一帧冲刺时间 = 冲刺时间;
+                  冲刺时间 = Math.max(0f, 冲刺时间 - dt);
+                  冻结时间 = Math.max(0f, 冻结时间 - dt);
+                  无敌时间 = Math.max(0f, 无敌时间 - dt);
+                  护盾时间 = Math.max(0f, 护盾时间 - dt);
+                  if (上一帧冲刺时间 > 0f && 冲刺时间 <= 0f) {
+                      无敌时间 = Math.max(无敌时间, 1f);
+                      生成浮字(小鸟X, 小鸟Y - 高 * 0.08f,
+                              "冲刺结束 · 无敌 1秒", Color.rgb(255, 227, 112));
+                  }
+                  受伤冷却 = Math.max(0f, 受伤冷却 - dt);
+                  if (护盾时间 <= 0f) 护盾可挡 = false;
+                  画面震动 = Math.max(0f, 画面震动 - dt * 3.4f);
+                  白闪 = Math.max(0f, 白闪 - dt * 3.3f);
+
+                  float 世界倍率 = 难度倍率;
+                  if (冻结时间 > 0f) 世界倍率 *= 0.43f;
+                  if (冲刺时间 > 0f) 世界倍率 *= 1.52f;
+                  世界速度 = 宽 * 0.335f * 世界倍率;
+
+                  float 物理倍率 = 0.80f + 0.22f * 难度倍率;
+                  float 重力 = 高 * 2.02f * 物理倍率;
+                  if (冻结时间 > 0f) 重力 *= 0.64f;
+                  if (冲刺时间 > 0f) {
+                      重力 *= 0.22f;
+                      小鸟速度Y *= (float) Math.pow(0.18, dt);
+                      小鸟速度Y += (高 * 0.48f - 小鸟Y) * dt * 1.0f;
+                  }
+                  小鸟速度Y += 重力 * dt;
+                  小鸟Y += 小鸟速度Y * dt;
+                  小鸟旋转 = 限制(小鸟速度Y / (高 * 0.80f) * 45f, -28f, 74f);
+
+                  for (管道 p : 管道组) {
+                      p.x -= 世界速度 * dt;
+                      if (!p.已计数 && p.x + p.宽度 < 小鸟X) {
+                          p.已计数 = true;
+                          跨越障碍++;
+                          生成浮字(小鸟X, 高 * 0.20f, "+25", Color.rgb(255, 235, 108));
+                      }
+                  }
+                  for (果实 f : 果实组) {
+                      f.x -= 世界速度 * dt;
+                      f.旋转 += dt * 1.7f;
+                      if (!f.已吃 && 距离平方(小鸟X, 小鸟Y, f.x,
+                              f.y + (float) Math.sin(动画时间 * 3 + f.相位) * 高 * 0.006f)
+                              < 平方(小鸟半径 + 宽 * 0.031f)) {
+                          吃果实(f);
+                      }
+                  }
+
+                  while (!管道组.isEmpty() && 管道组.get(0).x + 管道组.get(0).宽度 < -宽 * 0.2f) {
+                      管道组.remove(0);
+                  }
+                  Iterator<果实> 果实迭代 = 果实组.iterator();
+                  while (果实迭代.hasNext()) {
+                      果实 f = 果实迭代.next();
+                      if (f.x < -宽 * 0.15f || (f.已吃 && f.消失时间 <= 0f)) {
+                          果实迭代.remove();
+                      } else if (f.已吃) {
+                          f.消失时间 -= dt;
+                      }
+                  }
+
+                  if (!管道组.isEmpty()) {
+                      管道 最后 = 管道组.get(管道组.size() - 1);
+                      if (最后.x < 宽 * 1.52f) {
+                          管道 新管道 = 创建管道(最后.x + 最后.到下一个间距);
+                          管道组.add(新管道);
+                      }
+                  }
+
+                  检测碰撞();
+                  更新天气(dt);
+                  if (当前地图 == 黑暗丛林) 更新猎手(dt);
+                  更新粒子与浮字(dt);
+              }
+
+              private void 更新天气(float dt) {
+                  if (当前地图 == 冰天雪地) {
+                      冰雹计时 -= dt;
+                      if (冰雹计时 <= 0f) {
+                          冰雹中 = !冰雹中;
+                          冰雹计时 = 冰雹中
+                                  ? 2.2f + 随机.nextFloat() * 3.8f
+                                  : 6f + 随机.nextFloat() * 12f;
+                      }
+                  }
+                  if (当前地图 == 黑暗丛林) {
+                      if (!正在下雨 && 本局可能下雨 && 经过秒数 >= 下雨触发时间) {
+                          正在下雨 = true;
+                          本局可能下雨 = false;
+                          下雨持续时间 = 14f + 随机.nextFloat() * 24f;
+                      } else if (正在下雨) {
+                          下雨持续时间 -= dt;
+                          if (下雨持续时间 <= 0f && 随机.nextFloat() < dt * 0.45f) {
+                              if (随机.nextFloat() < 0.38f) 正在下雨 = false;
+                              else 下雨持续时间 = 12f + 随机.nextFloat() * 25f;
+                          }
+                      }
+                  }
+              }
+
+              private void 更新猎手(float dt) {
+                  if (猎手状态 == 0) {
+                      猎手冷却 -= dt;
+                      if (猎手冷却 <= 0f) {
+                          猎手Y = 限制(小鸟Y + 小鸟速度Y * 0.22f
+                                          + (随机.nextFloat() - 0.5f) * 高 * 0.07f,
+                                  高 * 0.14f, 地面线 - 高 * 0.12f);
+                          猎手碰到 = false;
+                          if (随机.nextFloat() < 0.22f) {
+                              // 少量突袭没有额外预警，但从屏幕最右侧飞到小鸟仍约有 0.65 秒反应时间。
+                              猎手状态 = 2;
+                              猎手X = 宽 * 1.16f;
+                          } else {
+                              猎手状态 = 1;
+                              猎手计时 = 0.88f + 随机.nextFloat() * 0.22f;
+                              音效.startTone(ToneGenerator.TONE_PROP_NACK, 90);
+                          }
+                      }
+                  } else if (猎手状态 == 1) {
+                      猎手计时 -= dt;
+                      if (猎手计时 <= 0f) {
+                          猎手状态 = 2;
+                          猎手X = 宽 * 1.16f;
+                      }
+                  } else {
+                      猎手X -= 宽 * (1.18f + 难度倍率 * 0.06f) * dt;
+                      float 猎手半径 = 宽 * 0.048f;
+                      if (!猎手碰到 && 距离平方(小鸟X, 小鸟Y, 猎手X, 猎手Y)
+                              < 平方(小鸟半径 + 猎手半径 * 0.72f)) {
+                          猎手碰到 = true;
+                          承受撞击("幽影袭击");
+                      }
+                      if (猎手X < -宽 * 0.18f) {
+                          if (!猎手碰到) {
+                              奖励分 += 12f;
+                              生成浮字(小鸟X, 小鸟Y - 高 * 0.06f,
+                                      "漂亮闪避 +12", Color.rgb(136, 255, 191));
+                              音效.startTone(ToneGenerator.TONE_PROP_BEEP2, 65);
+                          }
+                          猎手状态 = 0;
+                          猎手冷却 = 9f + 随机.nextFloat() * 8f;
+                      }
+                  }
+              }
+
+              private void 检测碰撞() {
+                  if (小鸟Y - 小鸟半径 < 高 * 0.012f) {
+                      小鸟Y = 高 * 0.012f + 小鸟半径;
+                      if (冲刺时间 > 0f || 无敌时间 > 0f) {
+                          小鸟速度Y = Math.abs(小鸟速度Y) * 0.42f;
+                      } else {
+                          承受撞击("撞到天空");
+                      }
+                  }
+                  if (小鸟Y + 小鸟半径 > 地面线) {
+                      小鸟Y = 地面线 - 小鸟半径;
+                      if (冲刺时间 > 0f || 无敌时间 > 0f) {
+                          小鸟速度Y = -高 * 0.38f;
+                      } else {
+                          承受撞击("撞到地面");
+                      }
+                  }
+
+                  for (管道 p : 管道组) {
+                      if (p.已破碎 || p.x > 小鸟X + 小鸟半径
+                              || p.x + p.宽度 < 小鸟X - 小鸟半径) continue;
+                      float 上端 = p.缺口Y - p.缺口高 * 0.5f;
+                      float 下端 = p.缺口Y + p.缺口高 * 0.5f;
+                      boolean 撞上 = 圆矩形碰撞(小鸟X, 小鸟Y, 小鸟半径,
+                              p.x, 0, p.x + p.宽度, 上端);
+                      boolean 撞下 = 圆矩形碰撞(小鸟X, 小鸟Y, 小鸟半径,
+                              p.x, 下端, p.x + p.宽度, 地面线);
+                      if (撞上 || 撞下) {
+                          if (冲刺时间 > 0f) {
+                              p.已破碎 = true;
+                              生成爆裂(p.x + p.宽度 * 0.5f,
+                                      撞上 ? 上端 : 下端, 地图主色(), 18);
+                              画面震动 = Math.max(画面震动, 0.34f);
+                              音效.startTone(ToneGenerator.TONE_PROP_BEEP2, 45);
+                          } else {
+                              承受撞击("撞到障碍");
+                          }
+                          break;
+                      }
+                  }
+              }
+
+              private void 承受撞击(String 原因) {
+                  if (受伤冷却 > 0f || 冲刺时间 > 0f || 无敌时间 > 0f) return;
+                  if (护盾可挡 && 护盾时间 > 0f) {
+                      护盾可挡 = false;
+                      护盾时间 = 0f;
+                      受伤冷却 = 0.82f;
+                      画面震动 = 0.70f;
+                      白闪 = 0.45f;
+                      生成爆裂(小鸟X, 小鸟Y, Color.rgb(83, 255, 197), 22);
+                      生成浮字(小鸟X, 小鸟Y - 高 * 0.07f,
+                              "护盾抵挡！", Color.rgb(111, 255, 211));
+                      音效.startTone(ToneGenerator.TONE_PROP_ACK, 75);
+                      return;
+                  }
+
+                  剩余生命--;
+                  受伤冷却 = 1.18f;
+                  无敌时间 = 1.05f;
+                  画面震动 = 1f;
+                  白闪 = 0.68f;
+                  小鸟速度Y = -高 * 0.36f;
+                  生成爆裂(小鸟X, 小鸟Y, Color.rgb(255, 91, 77), 26);
+                  音效.startTone(ToneGenerator.TONE_PROP_NACK, 180);
+                  if (剩余生命 <= 0) {
+                      游戏结束();
+                  } else {
+                      小鸟Y = 限制(小鸟Y, 高 * 0.20f, 地面线 - 高 * 0.16f);
+                      生成浮字(小鸟X, 小鸟Y - 高 * 0.08f,
+                              "-1 生命", Color.rgb(255, 119, 112));
+                  }
+              }
+
+              private void 吃果实(果实 f) {
+                  f.已吃 = true;
+                  f.消失时间 = 0.22f;
+                  int 真正类型 = f.类型;
+                  if (真正类型 == 随机果实) 真正类型 = 随机.nextInt(4);
+
+                  String 文字;
+                  int 颜色;
+                  if (真正类型 == 冲刺果实) {
+                      冲刺时间 = Math.max(冲刺时间, 2.2f);
+                      文字 = f.类型 == 随机果实 ? "随机：烈焰冲刺！" : "烈焰冲刺 2.2秒";
+                      颜色 = Color.rgb(255, 90, 63);
+                  } else if (真正类型 == 冻结果实) {
+                      冻结时间 = Math.max(冻结时间, 2.5f);
+                      文字 = f.类型 == 随机果实 ? "随机：冰封全场！" : "冰封全场 2.5秒";
+                      颜色 = Color.rgb(91, 205, 255);
+                  } else if (真正类型 == 无敌果实) {
+                      无敌时间 = Math.max(无敌时间, 3f);
+                      文字 = f.类型 == 随机果实 ? "随机：星辉无敌！" : "星辉无敌 3秒";
+                      颜色 = Color.rgb(255, 223, 78);
+                  } else {
+                      护盾时间 = 5f;
+                      护盾可挡 = true;
+                      文字 = f.类型 == 随机果实 ? "随机：翡翠护盾！" : "翡翠护盾 5秒";
+                      颜色 = Color.rgb(77, 255, 187);
+                  }
+                  奖励分 += 5f;
+                  生成爆裂(f.x, f.y, 颜色, 24);
+                  生成浮字(小鸟X + 宽 * 0.04f, 小鸟Y - 高 * 0.08f, 文字, 颜色);
+                  音效.startTone(ToneGenerator.TONE_PROP_BEEP2, 105);
+              }
+
+              private void 游戏结束() {
+                  状态 = 结束;
+                  冲刺时间 = 冻结时间 = 护盾时间 = 0f;
+                  护盾可挡 = false;
+                  int 分数 = 当前分数();
+                  if (设定生命 == 1) {
+                      int 最高 = 读取最高分(当前地图);
+                      if (分数 > 最高) {
+                          存档.edit().putInt("最高分_" + 当前地图, 分数).apply();
+                      }
+                  }
+              }
+
+              private int 当前分数() {
+                  return (int) Math.floor(经过秒数 * 4f + 跨越障碍 * 25f + 奖励分);
+              }
+
+              private int 读取最高分(int 地图) {
+                  return 存档.getInt("最高分_" + 地图, 0);
+              }
+
+              private void 扇动翅膀() {
+                  float 力度倍率 = 0.82f + 0.22f * 难度倍率;
+                  小鸟速度Y = -高 * 0.70f * 力度倍率;
+                  if (冻结时间 > 0f) 小鸟速度Y *= 0.78f;
+                  生成翅膀粒子();
+                  音效.startTone(ToneGenerator.TONE_PROP_BEEP, 28);
+              }
+
+              private void 更新粒子与浮字(float dt) {
+                  Iterator<粒子> it = 粒子组.iterator();
+                  while (it.hasNext()) {
+                      粒子 p = it.next();
+                      p.生命 -= dt;
+                      if (p.生命 <= 0f) {
+                          it.remove();
+                          continue;
+                      }
+                      p.vy += p.重力 * dt;
+                      p.x += p.vx * dt;
+                      p.y += p.vy * dt;
+                      p.旋转 += p.旋转速度 * dt;
+                  }
+                  Iterator<浮字> ft = 浮字组.iterator();
+                  while (ft.hasNext()) {
+                      浮字 f = ft.next();
+                      f.生命 -= dt;
+                      f.y -= 高 * 0.030f * dt;
+                      if (f.生命 <= 0f) ft.remove();
+                  }
+              }
+
+              private void 生成翅膀粒子() {
+                  for (int i = 0; i < 4; i++) {
+                      粒子 p = new 粒子();
+                      p.x = 小鸟X - 小鸟半径 * 0.8f;
+                      p.y = 小鸟Y + (随机.nextFloat() - 0.5f) * 小鸟半径;
+                      p.vx = -宽 * (0.08f + 随机.nextFloat() * 0.12f);
+                      p.vy = (随机.nextFloat() - 0.5f) * 高 * 0.05f;
+                      p.生命 = p.总生命 = 0.35f + 随机.nextFloat() * 0.22f;
+                      p.半径 = 宽 * (0.004f + 随机.nextFloat() * 0.005f);
+                      p.颜色 = Color.rgb(255, 226, 114);
+                      粒子组.add(p);
+                  }
+              }
+
+              private void 生成爆裂(float x, float y, int 颜色, int 数量) {
+                  for (int i = 0; i < 数量; i++) {
+                      float 角 = 随机.nextFloat() * 6.283f;
+                      float 速 = 宽 * (0.12f + 随机.nextFloat() * 0.42f);
+                      粒子 p = new 粒子();
+                      p.x = x;
+                      p.y = y;
+                      p.vx = (float) Math.cos(角) * 速;
+                      p.vy = (float) Math.sin(角) * 速;
+                      p.重力 = 高 * 0.26f;
+                      p.生命 = p.总生命 = 0.42f + 随机.nextFloat() * 0.58f;
+                      p.半径 = 宽 * (0.004f + 随机.nextFloat() * 0.008f);
+                      p.颜色 = 颜色;
+                      p.方形 = 随机.nextBoolean();
+                      p.旋转速度 = (随机.nextFloat() - 0.5f) * 9f;
+                      粒子组.add(p);
+                  }
+              }
+
+              private void 生成浮字(float x, float y, String text, int color) {
+                  浮字 f = new 浮字();
+                  f.x = x;
+                  f.y = y;
+                  f.文字 = text;
+                  f.颜色 = color;
+                  f.生命 = f.总生命 = 1.05f;
+                  浮字组.add(f);
+              }
+
+              private void 绘制背景(Canvas c) {
+                  if (宽 == 0 || 高 == 0) return;
+                  if (当前地图 == 经典管道) 绘制经典背景(c);
+                  else if (当前地图 == 危险山峰) 绘制山峰背景(c);
+                  else if (当前地图 == 冰天雪地) 绘制冰雪背景(c);
+                  else 绘制丛林背景(c);
+              }
+
+              private void 绘制经典背景(Canvas c) {
+                  int 顶;
+                  int 底;
+                  if (时间流转) {
+                      顶 = 循环取色(天色相位,
+                              new int[]{0xFF071B3D, 0xFFCB6E74, 0xFF53C8F0, 0xFFED875F});
+                      底 = 循环取色(天色相位,
+                              new int[]{0xFF17335B, 0xFFFFC994, 0xFFB9F1FF, 0xFFFFC079});
+                  } else {
+                      顶 = 0xFF58C9EE;
+                      底 = 0xFFC6F4F6;
+                  }
+                  渐变矩形(c, 0, 0, 宽, 高, 顶, 底, true);
+                  if (时间流转) 绘制日月星(c, 天色相位, 0.78f);
+
+                  for (int i = 0; i < 6; i++) {
+                      float x = 循环位置((float) (i * 宽 * 0.23 - 动画时间 * 宽 * 0.018),
+                              宽 * 1.35f) - 宽 * 0.18f;
+                      float y = 高 * (0.13f + (i % 3) * 0.105f);
+                      绘制云(c, x, y, 宽 * (0.10f + (i % 2) * 0.035f),
+                              Color.argb(150, 255, 255, 255));
+                  }
+
+                  纯色(Color.argb(64, 48, 127, 145));
+                  for (int i = 0; i < 12; i++) {
+                      float bw = 宽 * (0.045f + (i % 3) * 0.012f);
+                      float x = i * 宽 * 0.095f - 宽 * 0.05f;
+                      float bh = 高 * (0.05f + (i * 37 % 6) * 0.012f);
+                      c.drawRoundRect(x, 地面线 - 高 * 0.07f - bh,
+                              x + bw, 地面线 - 高 * 0.07f, 宽 * 0.008f, 宽 * 0.008f, 画笔);
+                  }
+                  绘制远景草丘(c, 0xFF73C96A, 0xFF4BAA55);
+              }
+
+              private void 绘制山峰背景(Canvas c) {
+                  int 顶 = 循环取色(天色相位,
+                          new int[]{0xFF050C24, 0xFF7F4262, 0xFF4EAEE0, 0xFFDB684C});
+                  int 底 = 循环取色(天色相位,
+                          new int[]{0xFF18294C, 0xFFF1A77D, 0xFFC7EDFF, 0xFFF7A066});
+                  渐变矩形(c, 0, 0, 宽, 高, 顶, 底, true);
+                  绘制日月星(c, 天色相位, 0.80f);
+
+                  绘制山层(c, 高 * 0.50f, 0.20f, 0x784C6682, 0.012f);
+                  绘制山层(c, 高 * 0.64f, 0.28f, 0xAA344D62, 0.025f);
+                  绘制山层(c, 高 * 0.78f, 0.36f, 0xFF243A49, 0.045f);
+
+                  纯色(0xFF172C36);
+                  c.drawRect(0, 地面线 - 高 * 0.02f, 宽, 高, 画笔);
+              }
+
+              private void 绘制冰雪背景(Canvas c) {
+                  渐变矩形(c, 0, 0, 宽, 高, 0xFF183E69, 0xFFD7F6FF, true);
+                  Paint save = 画笔;
+                  LinearGradient 极光 = new LinearGradient(0, 高 * 0.08f, 宽, 高 * 0.46f,
+                          new int[]{0x0018FFD0, 0x7037E6D1, 0x5058AFFF, 0x00FFFFFF},
+                          new float[]{0f, 0.34f, 0.72f, 1f}, Shader.TileMode.CLAMP);
+                  save.setShader(极光);
+                  路径.reset();
+                  路径.moveTo(0, 高 * 0.12f);
+                  for (int i = 0; i <= 8; i++) {
+                      float x = i * 宽 / 8f;
+                      float y = 高 * (0.20f + 0.045f
+                              * (float) Math.sin(动画时间 * 0.55 + i * 0.8));
+                      路径.lineTo(x, y);
+                  }
+                  路径.lineTo(宽, 高 * 0.45f);
+                  路径.lineTo(0, 高 * 0.38f);
+                  路径.close();
+                  c.drawPath(路径, save);
+                  save.setShader(null);
+
+                  绘制雪山层(c, 高 * 0.60f, 0xFF88B7D0, 0xFFDDF5FF, 0.018f);
+                  绘制雪山层(c, 高 * 0.76f, 0xFF537E9A, 0xFFF4FCFF, 0.042f);
+                  渐变矩形(c, 0, 地面线 - 高 * 0.025f, 宽, 高,
+                          0xFFE9FBFF, 0xFF91CFE3, true);
+
+                  for (int i = 0; i < 26; i++) {
+                      float x = 循环位置((float) (i * 97 + 动画时间 * (18 + i % 5)), 宽 + 80) - 40;
+                      float y = 循环位置((float) (i * 151 + 动画时间 * (36 + i % 7)), 地面线) - 20;
+                      float r = 宽 * (0.0025f + (i % 3) * 0.0012f);
+                      纯色(Color.argb(145, 255, 255, 255));
+                      c.drawCircle(x, y, r, 画笔);
+                  }
+                  if (冰雹中 && 状态 != 菜单) 绘制冰雹(c);
+              }
+
+              private void 绘制丛林背景(Canvas c) {
+                  int 顶 = 正在下雨 ? 0xFF061B28 : 0xFF071E28;
+                  int 底 = 正在下雨 ? 0xFF183E3D : 0xFF174B3B;
+                  渐变矩形(c, 0, 0, 宽, 高, 顶, 底, true);
+
+                  float 月X = 宽 * 0.76f;
+                  float 月Y = 高 * 0.16f;
+                  画笔.setShader(new RadialGradient(月X, 月Y, 宽 * 0.14f,
+                          0x665DE6C1, 0x005DE6C1, Shader.TileMode.CLAMP));
+                  c.drawCircle(月X, 月Y, 宽 * 0.14f, 画笔);
+                  画笔.setShader(null);
+                  纯色(0xFFB8E7C7);
+                  c.drawCircle(月X, 月Y, 宽 * 0.042f, 画笔);
+                  纯色(0xFF173E3A);
+                  c.drawCircle(月X + 宽 * 0.018f, 月Y - 宽 * 0.012f, 宽 * 0.040f, 画笔);
+
+                  绘制丛林树层(c, 0.63f, 0xAA0B352D, 0.016f);
+                  绘制丛林树层(c, 0.78f, 0xFF082B24, 0.034f);
+
+                  描边.setColor(0xAA1F7756);
+                  描边.setStrokeWidth(宽 * 0.010f);
+                  for (int i = 0; i < 5; i++) {
+                      float x = 宽 * (0.10f + i * 0.22f);
+                      float len = 高 * (0.12f + (i % 3) * 0.07f);
+                      路径.reset();
+                      路径.moveTo(x, 0);
+                      路径.cubicTo(x - 宽 * 0.06f, len * 0.35f,
+                              x + 宽 * 0.08f, len * 0.65f, x, len);
+                      c.drawPath(路径, 描边);
+                  }
+
+                  for (int i = 0; i < 16; i++) {
+                      float x = (i * 83f + 宽 * 0.07f) % 宽;
+                      float y = 高 * (0.15f + ((i * 47) % 62) / 100f);
+                      x += (float) Math.sin(动画时间 * (0.7 + i % 3 * 0.2) + i) * 宽 * 0.018f;
+                      y += (float) Math.cos(动画时间 * 0.8 + i * 1.7) * 高 * 0.012f;
+                      float glow = 0.55f + 0.45f * (float) Math.sin(动画时间 * 3 + i);
+                      画笔.setShader(new RadialGradient(x, y, 宽 * 0.018f,
+                              Color.argb((int) (110 * glow), 173, 255, 111),
+                              0x0011FF55, Shader.TileMode.CLAMP));
+                      c.drawCircle(x, y, 宽 * 0.018f, 画笔);
+                      画笔.setShader(null);
+                      纯色(Color.argb((int) (190 * glow), 220, 255, 146));
+                      c.drawCircle(x, y, 宽 * 0.0028f, 画笔);
+                  }
+
+                  纯色(0xFF061F1B);
+                  c.drawRect(0, 地面线 - 高 * 0.025f, 宽, 高, 画笔);
+                  if (正在下雨) 绘制雨(c);
+              }
+
+              private void 绘制日月星(Canvas c, float phase, float 高度比例) {
+                  float 白昼 = (float) ((Math.cos((phase - 0.5f) * Math.PI * 2) + 1) * 0.5);
+                  if (白昼 < 0.46f) {
+                      for (int i = 0; i < 34; i++) {
+                          float x = (i * 89 + 37) % 宽;
+                          float y = 高 * (0.045f + ((i * 61) % 50) / 100f);
+                          float tw = 0.45f + 0.55f
+                                  * (float) Math.sin(动画时间 * 2.1 + i * 1.3);
+                          纯色(Color.argb((int) ((1f - 白昼) * 185 * tw),
+                                  225, 241, 255));
+                          c.drawCircle(x, y, 宽 * (0.0018f + (i % 3) * 0.0009f), 画笔);
+                      }
+                  }
+
+                  float 角 = phase * 6.283f - 3.1415f;
+                  float x = 宽 * 0.5f + (float) Math.cos(角) * 宽 * 0.38f;
+                  float y = 高 * 高度比例 - (float) Math.sin(角) * 高 * 0.67f;
+                  if (白昼 >= 0.42f) {
+                      画笔.setShader(new RadialGradient(x, y, 宽 * 0.11f,
+                              0x88FFF3A0, 0x00FFF3A0, Shader.TileMode.CLAMP));
+                      c.drawCircle(x, y, 宽 * 0.11f, 画笔);
+                      画笔.setShader(null);
+                      纯色(0xFFFFE66B);
+                      c.drawCircle(x, y, 宽 * 0.033f, 画笔);
+                  } else {
+                      纯色(0xFFE5F2FF);
+                      c.drawCircle(x, y, 宽 * 0.032f, 画笔);
+                      纯色(0xFF8DA5C4);
+                      c.drawCircle(x + 宽 * 0.014f, y - 宽 * 0.009f, 宽 * 0.028f, 画笔);
+                  }
+              }
+
+              private void 绘制云(Canvas c, float x, float y, float s, int color) {
+                  纯色(color);
+                  c.drawOval(x - s * 0.60f, y - s * 0.12f,
+                          x + s * 0.68f, y + s * 0.25f, 画笔);
+                  c.drawCircle(x - s * 0.20f, y - s * 0.10f, s * 0.32f, 画笔);
+                  c.drawCircle(x + s * 0.16f, y - s * 0.20f, s * 0.41f, 画笔);
+                  c.drawCircle(x + s * 0.48f, y, s * 0.25f, 画笔);
+              }
+
+              private void 绘制远景草丘(Canvas c, int 远色, int 近色) {
+                  纯色(远色);
+                  路径.reset();
+                  路径.moveTo(0, 地面线);
+                  for (int i = 0; i <= 8; i++) {
+                      float x = i * 宽 / 8f;
+                      float y = 地面线 - 高 * (0.055f
+                              + 0.025f * (float) Math.sin(i * 1.7));
+                      路径.lineTo(x, y);
+                  }
+                  路径.lineTo(宽, 地面线);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+
+                  渐变矩形(c, 0, 地面线 - 高 * 0.037f, 宽, 高,
+                          近色, 0xFF2A7C43, true);
+                  纯色(0xFF91E06B);
+                  c.drawRect(0, 地面线 - 高 * 0.038f, 宽, 地面线 - 高 * 0.026f, 画笔);
+                  纯色(0x6688D75B);
+                  for (int i = 0; i < 25; i++) {
+                      float x = i * 宽 / 24f;
+                      c.drawRoundRect(x, 地面线 - 高 * 0.022f,
+                              x + 宽 * 0.016f, 地面线 + 高 * 0.015f,
+                              宽 * 0.006f, 宽 * 0.006f, 画笔);
+                  }
+              }
+
+              private void 绘制山层(Canvas c, float baseY, float 振幅,
+                                  int color, float scroll) {
+                  纯色(color);
+                  路径.reset();
+                  路径.moveTo(-宽 * 0.2f, 地面线);
+                  float 偏移 = (float) (动画时间 * 宽 * scroll) % (宽 * 0.42f);
+                  for (int i = -2; i <= 8; i++) {
+                      float x = i * 宽 * 0.22f - 偏移;
+                      float peak = baseY - 高 * 振幅 * (0.65f + (i * 31 & 3) * 0.10f);
+                      路径.lineTo(x, baseY);
+                      路径.lineTo(x + 宽 * 0.11f, peak);
+                      路径.lineTo(x + 宽 * 0.22f, baseY);
+                  }
+                  路径.lineTo(宽 * 1.2f, 地面线);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+              }
+
+              private void 绘制雪山层(Canvas c, float baseY, int rock,
+                                   int snow, float scroll) {
+                  float 偏移 = (float) (动画时间 * 宽 * scroll) % (宽 * 0.50f);
+                  for (int i = -2; i < 6; i++) {
+                      float left = i * 宽 * 0.33f - 偏移;
+                      float peakX = left + 宽 * 0.17f;
+                      float peakY = baseY - 高 * (0.16f + (i * 13 & 3) * 0.022f);
+                      纯色(rock);
+                      路径.reset();
+                      路径.moveTo(left, baseY);
+                      路径.lineTo(peakX, peakY);
+                      路径.lineTo(left + 宽 * 0.35f, baseY);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+
+                      纯色(snow);
+                      路径.reset();
+                      路径.moveTo(peakX, peakY);
+                      路径.lineTo(peakX - 宽 * 0.065f, peakY + 高 * 0.060f);
+                      路径.lineTo(peakX - 宽 * 0.022f, peakY + 高 * 0.047f);
+                      路径.lineTo(peakX + 宽 * 0.014f, peakY + 高 * 0.070f);
+                      路径.lineTo(peakX + 宽 * 0.077f, peakY + 高 * 0.066f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                  }
+              }
+
+              private void 绘制丛林树层(Canvas c, float base, int color, float scroll) {
+                  纯色(color);
+                  float 偏移 = (float) (动画时间 * 宽 * scroll) % (宽 * 0.25f);
+                  for (int i = -2; i < 8; i++) {
+                      float x = i * 宽 * 0.18f - 偏移;
+                      float top = 高 * (base - 0.15f - (i * 17 & 3) * 0.025f);
+                      c.drawRoundRect(x + 宽 * 0.066f, top, x + 宽 * 0.105f,
+                              地面线, 宽 * 0.02f, 宽 * 0.02f, 画笔);
+                      c.drawCircle(x + 宽 * 0.08f, top, 宽 * 0.095f, 画笔);
+                      c.drawCircle(x + 宽 * 0.015f, top + 高 * 0.035f, 宽 * 0.072f, 画笔);
+                      c.drawCircle(x + 宽 * 0.15f, top + 高 * 0.028f, 宽 * 0.083f, 画笔);
+                  }
+              }
+
+              private void 绘制雨(Canvas c) {
+                  描边.setStrokeWidth(宽 * 0.003f);
+                  描边.setColor(0x7082CBE2);
+                  for (int i = 0; i < 54; i++) {
+                      float x = 循环位置((float) (i * 83 + 动画时间 * 宽 * 0.62),
+                              宽 + 120) - 60;
+                      float y = 循环位置((float) (i * 137 + 动画时间 * 高 * 0.92),
+                              地面线 + 100) - 50;
+                      c.drawLine(x, y, x - 宽 * 0.018f, y + 高 * 0.035f, 描边);
+                  }
+                  纯色(0x1929A0BA);
+                  c.drawRect(0, 0, 宽, 高, 画笔);
+              }
+
+              private void 绘制冰雹(Canvas c) {
+                  描边.setStrokeWidth(宽 * 0.004f);
+                  描边.setColor(0xCCEFFBFF);
+                  for (int i = 0; i < 28; i++) {
+                      float x = 循环位置((float) (i * 107 + 动画时间 * 宽 * 0.34),
+                              宽 + 80) - 40;
+                      float y = 循环位置((float) (i * 173 + 动画时间 * 高 * 0.76),
+                              地面线 + 80) - 40;
+                      c.drawLine(x, y, x - 宽 * 0.010f, y + 高 * 0.026f, 描边);
+                      纯色(0xDDF7FDFF);
+                      c.drawCircle(x - 宽 * 0.010f, y + 高 * 0.026f,
+                              宽 * (0.003f + (i % 3) * 0.0012f), 画笔);
+                  }
+              }
+
+              private void 绘制游戏场景(Canvas c) {
+                  for (管道 p : 管道组) 绘制管道(c, p);
+                  for (果实 f : 果实组) if (!f.已吃 || f.消失时间 > 0f) 绘制果实(c, f);
+                  绘制粒子(c);
+                  if (当前地图 == 黑暗丛林) 绘制猎手(c);
+                  绘制小鸟(c, 小鸟X, 小鸟Y, 1f, false);
+                  绘制浮字(c);
+                  绘制HUD(c);
+                  if (冻结时间 > 0f) 绘制冻结特效(c);
+              }
+
+              private void 绘制管道(Canvas c, 管道 p) {
+                  float 上端 = p.缺口Y - p.缺口高 * 0.5f;
+                  float 下端 = p.缺口Y + p.缺口高 * 0.5f;
+                  if (p.已破碎) {
+                      绘制破碎残段(c, p, 上端, 下端);
+                      return;
+                  }
+                  if (当前地图 == 经典管道) 绘制经典管道(c, p, 上端, 下端);
+                  else if (当前地图 == 危险山峰) 绘制岩柱(c, p, 上端, 下端);
+                  else if (当前地图 == 冰天雪地) 绘制冰柱(c, p, 上端, 下端);
+                  else 绘制丛林木柱(c, p, 上端, 下端);
+              }
+
+              private void 绘制经典管道(Canvas c, 管道 p, float top, float bottom) {
+                  float x = p.x;
+                  float pw = p.宽度;
+                  float cap = 高 * 0.026f;
+                  float over = pw * 0.12f;
+                  画笔.setShader(new LinearGradient(x, 0, x + pw, 0,
+                          new int[]{0xFF2D8E42, 0xFF83DF5D, 0xFF42B74F, 0xFF1C7139},
+                          null, Shader.TileMode.CLAMP));
+                  c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
+                          pw * 0.10f, pw * 0.10f, 画笔);
+                  c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
+                          pw * 0.10f, pw * 0.10f, 画笔);
+                  画笔.setShader(null);
+
+                  画笔.setShader(new LinearGradient(x - over, 0, x + pw + over, 0,
+                          0xFF217C39, 0xFF79D95A, Shader.TileMode.MIRROR));
+                  c.drawRoundRect(x - over, top - cap, x + pw + over, top,
+                          pw * 0.12f, pw * 0.12f, 画笔);
+                  c.drawRoundRect(x - over, bottom, x + pw + over, bottom + cap,
+                          pw * 0.12f, pw * 0.12f, 画笔);
+                  画笔.setShader(null);
+
+                  描边.setColor(0xFF185B32);
+                  描边.setStrokeWidth(宽 * 0.0045f);
+                  c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
+                          pw * 0.10f, pw * 0.10f, 描边);
+                  c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
+                          pw * 0.10f, pw * 0.10f, 描边);
+                  纯色(0x77D7FF9A);
+                  c.drawRoundRect(x + pw * 0.18f, 0, x + pw * 0.29f,
+                          top - cap * 1.2f, pw * 0.05f, pw * 0.05f, 画笔);
+                  c.drawRoundRect(x + pw * 0.18f, bottom + cap * 1.2f,
+                          x + pw * 0.29f, 地面线, pw * 0.05f, pw * 0.05f, 画笔);
+              }
+
+              private void 绘制岩柱(Canvas c, 管道 p, float top, float bottom) {
+                  float x = p.x;
+                  float pw = p.宽度;
+                  画笔.setShader(new LinearGradient(x, 0, x + pw, 0,
+                          0xFF293640, 0xFF68747A, Shader.TileMode.MIRROR));
+                  c.drawRoundRect(x, -高 * 0.02f, x + pw, top - 高 * 0.018f,
+                          pw * 0.10f, pw * 0.10f, 画笔);
+                  c.drawRoundRect(x, bottom + 高 * 0.018f, x + pw,
+                          地面线 + 高 * 0.02f, pw * 0.10f, pw * 0.10f, 画笔);
+                  画笔.setShader(null);
+
+                  纯色(0xFF47545A);
+                  路径.reset();
+                  路径.moveTo(x, top - 高 * 0.025f);
+                  路径.lineTo(x + pw * 0.18f, top);
+                  路径.lineTo(x + pw * 0.37f, top - 高 * 0.042f);
+                  路径.lineTo(x + pw * 0.58f, top - 高 * 0.006f);
+                  路径.lineTo(x + pw * 0.78f, top - 高 * 0.036f);
+                  路径.lineTo(x + pw, top - 高 * 0.012f);
+                  路径.lineTo(x + pw, top - 高 * 0.065f);
+                  路径.lineTo(x, top - 高 * 0.065f);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+
+                  路径.reset();
+                  路径.moveTo(x, bottom + 高 * 0.025f);
+                  路径.lineTo(x + pw * 0.18f, bottom);
+                  路径.lineTo(x + pw * 0.38f, bottom + 高 * 0.043f);
+                  路径.lineTo(x + pw * 0.60f, bottom + 高 * 0.008f);
+                  路径.lineTo(x + pw * 0.80f, bottom + 高 * 0.038f);
+                  路径.lineTo(x + pw, bottom + 高 * 0.014f);
+                  路径.lineTo(x + pw, bottom + 高 * 0.072f);
+                  路径.lineTo(x, bottom + 高 * 0.072f);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+
+                  描边.setColor(0x99404A50);
+                  描边.setStrokeWidth(宽 * 0.004f);
+                  for (int i = 0; i < 3; i++) {
+                      float cx = x + pw * (0.25f + i * 0.23f);
+                      c.drawLine(cx, 高 * (0.10f + i * 0.12f),
+                              cx + pw * 0.16f, 高 * (0.15f + i * 0.12f), 描边);
+                      c.drawLine(cx, bottom + 高 * (0.07f + i * 0.09f),
+                              cx - pw * 0.13f, bottom + 高 * (0.12f + i * 0.09f), 描边);
+                  }
+              }
+
+              private void 绘制冰柱(Canvas c, 管道 p, float top, float bottom) {
+                  float x = p.x;
+                  float pw = p.宽度;
+                  画笔.setShader(new LinearGradient(x, 0, x + pw, 0,
+                          new int[]{0xFF3E91B9, 0xFFB9F5FF, 0xFF65C7DF, 0xFF347EA7},
+                          null, Shader.TileMode.CLAMP));
+                  c.drawRoundRect(x, -高 * 0.02f, x + pw, top - 高 * 0.018f,
+                          pw * 0.16f, pw * 0.16f, 画笔);
+                  c.drawRoundRect(x, bottom + 高 * 0.018f, x + pw,
+                          地面线 + 高 * 0.02f, pw * 0.16f, pw * 0.16f, 画笔);
+                  画笔.setShader(null);
+
+                  纯色(0xFFDDFBFF);
+                  for (int i = 0; i < 5; i++) {
+                      float x1 = x + i * pw / 5f;
+                      路径.reset();
+                      路径.moveTo(x1, top - 高 * 0.020f);
+                      路径.lineTo(x1 + pw * 0.10f, top + 高 * (0.022f + (i % 2) * 0.020f));
+                      路径.lineTo(x1 + pw * 0.20f, top - 高 * 0.020f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+
+                      路径.reset();
+                      路径.moveTo(x1, bottom + 高 * 0.020f);
+                      路径.lineTo(x1 + pw * 0.10f, bottom - 高 * (0.024f + (i % 2) * 0.018f));
+                      路径.lineTo(x1 + pw * 0.20f, bottom + 高 * 0.020f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                  }
+                  纯色(0x88FFFFFF);
+                  c.drawRoundRect(x + pw * 0.17f, 0, x + pw * 0.29f, top - 高 * 0.04f,
+                          pw * 0.06f, pw * 0.06f, 画笔);
+                  c.drawRoundRect(x + pw * 0.17f, bottom + 高 * 0.04f,
+                          x + pw * 0.29f, 地面线, pw * 0.06f, pw * 0.06f, 画笔);
+              }
+
+              private void 绘制丛林木柱(Canvas c, 管道 p, float top, float bottom) {
+                  float x = p.x;
+                  float pw = p.宽度;
+                  画笔.setShader(new LinearGradient(x, 0, x + pw, 0,
+                          new int[]{0xFF38251A, 0xFF805132, 0xFF57331F, 0xFF251A16},
+                          null, Shader.TileMode.CLAMP));
+                  c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
+                          pw * 0.18f, pw * 0.18f, 画笔);
+                  c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
+                          pw * 0.18f, pw * 0.18f, 画笔);
+                  画笔.setShader(null);
+
+                  描边.setStrokeWidth(宽 * 0.004f);
+                  描边.setColor(0xAA2A1B16);
+                  for (int i = 1; i < 4; i++) {
+                      float xx = x + pw * i / 4f;
+                      c.drawLine(xx, 0, xx + (i % 2 == 0 ? pw * 0.08f : -pw * 0.06f),
+                              top, 描边);
+                      c.drawLine(xx, bottom,
+                              xx + (i % 2 == 0 ? -pw * 0.07f : pw * 0.05f), 地面线, 描边);
+                  }
+
+                  描边.setColor(0xFF2C8957);
+                  描边.setStrokeWidth(宽 * 0.009f);
+                  路径.reset();
+                  路径.moveTo(x + pw * 0.12f, top - 高 * 0.10f);
+                  路径.cubicTo(x - pw * 0.35f, top - 高 * 0.06f,
+                          x + pw * 0.35f, top - 高 * 0.02f, x - pw * 0.06f, top + 高 * 0.018f);
+                  c.drawPath(路径, 描边);
+                  路径.reset();
+                  路径.moveTo(x + pw * 0.88f, bottom + 高 * 0.10f);
+                  路径.cubicTo(x + pw * 1.32f, bottom + 高 * 0.07f,
+                          x + pw * 0.65f, bottom + 高 * 0.03f, x + pw * 1.05f, bottom);
+                  c.drawPath(路径, 描边);
+
+                  纯色(0xFF3FA267);
+                  for (int i = 0; i < 5; i++) {
+                      float ly = top - 高 * (0.015f + i * 0.018f);
+                      c.drawOval(x - pw * 0.20f + i * pw * 0.12f, ly,
+                              x + pw * 0.17f + i * pw * 0.12f,
+                              ly + 高 * 0.022f, 画笔);
+                  }
+              }
+
+              private void 绘制破碎残段(Canvas c, 管道 p, float top, float bottom) {
+                  int color = 地图主色();
+                  纯色(调亮(color, -0.18f));
+                  c.drawRoundRect(p.x, 0, p.x + p.宽度, Math.max(0, top - 高 * 0.11f),
+                          p.宽度 * 0.1f, p.宽度 * 0.1f, 画笔);
+                  c.drawRoundRect(p.x, Math.min(地面线, bottom + 高 * 0.11f),
+                          p.x + p.宽度, 地面线,
+                          p.宽度 * 0.1f, p.宽度 * 0.1f, 画笔);
+                  描边.setColor(0xAAFFFFFF);
+                  描边.setStrokeWidth(宽 * 0.004f);
+                  c.drawLine(p.x + p.宽度 * 0.18f, top - 高 * 0.12f,
+                          p.x + p.宽度 * 0.48f, top - 高 * 0.085f, 描边);
+                  c.drawLine(p.x + p.宽度 * 0.72f, bottom + 高 * 0.09f,
+                          p.x + p.宽度 * 0.42f, bottom + 高 * 0.13f, 描边);
+              }
+
+              private void 绘制果实(Canvas c, 果实 f) {
+                  float y = f.y + (float) Math.sin(动画时间 * 3 + f.相位) * 高 * 0.006f;
+                  float r = 宽 * 0.031f;
+                  float appear = f.已吃 ? Math.max(0f, f.消失时间 / 0.22f) : 1f;
+                  r *= 0.92f + 0.08f * (float) Math.sin(动画时间 * 4.5 + f.相位);
+                  c.save();
+                  c.translate(f.x, y);
+                  c.scale(appear, appear);
+                  c.rotate((float) Math.sin(f.旋转) * 7f);
+
+                  int 主色;
+                  if (f.类型 == 冲刺果实) 主色 = 0xFFFF4E42;
+                  else if (f.类型 == 冻结果实) 主色 = 0xFF56CFFF;
+                  else if (f.类型 == 无敌果实) 主色 = 0xFFFFD84F;
+                  else if (f.类型 == 护盾果实) 主色 = 0xFF39E6A2;
+                  else 主色 = Color.HSVToColor(new float[]{
+                                  (float) ((动画时间 * 120 + f.相位 * 40) % 360), 0.78f, 1f});
+
+                  画笔.setShader(new RadialGradient(0, 0, r * 2.2f,
+                          设透明(主色, 115), 设透明(主色, 0), Shader.TileMode.CLAMP));
+                  c.drawCircle(0, 0, r * 2.2f, 画笔);
+                  画笔.setShader(null);
+                  纯色(0xFF2A8A4C);
+                  路径.reset();
+                  路径.moveTo(-r * 0.10f, -r * 0.74f);
+                  路径.quadTo(r * 0.25f, -r * 1.20f, r * 0.70f, -r * 0.88f);
+                  路径.quadTo(r * 0.28f, -r * 0.48f, -r * 0.10f, -r * 0.74f);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+
+                  画笔.setShader(new RadialGradient(-r * 0.28f, -r * 0.28f, r * 1.35f,
+                          调亮(主色, 0.28f), 调亮(主色, -0.20f), Shader.TileMode.CLAMP));
+                  c.drawCircle(0, 0, r, 画笔);
+                  画笔.setShader(null);
+                  描边.setColor(调亮(主色, -0.36f));
+                  描边.setStrokeWidth(r * 0.10f);
+                  c.drawCircle(0, 0, r, 描边);
+
+                  if (f.类型 == 冲刺果实) {
+                      纯色(0xFFFFF0A2);
+                      路径.reset();
+                      路径.moveTo(r * 0.12f, -r * 0.65f);
+                      路径.lineTo(-r * 0.34f, r * 0.02f);
+                      路径.lineTo(r * 0.02f, r * 0.02f);
+                      路径.lineTo(-r * 0.16f, r * 0.65f);
+                      路径.lineTo(r * 0.48f, -r * 0.12f);
+                      路径.lineTo(r * 0.12f, -r * 0.12f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                  } else if (f.类型 == 冻结果实) {
+                      描边.setColor(Color.WHITE);
+                      描边.setStrokeWidth(r * 0.11f);
+                      for (int i = 0; i < 3; i++) {
+                          float a = i * 1.047f;
+                          c.drawLine((float) Math.cos(a) * -r * 0.62f,
+                                  (float) Math.sin(a) * -r * 0.62f,
+                                  (float) Math.cos(a) * r * 0.62f,
+                                  (float) Math.sin(a) * r * 0.62f, 描边);
+                      }
+                  } else if (f.类型 == 无敌果实) {
+                      纯色(Color.WHITE);
+                      绘制星形(c, 0, 0, r * 0.66f, r * 0.29f, 5, 画笔);
+                  } else if (f.类型 == 护盾果实) {
+                      纯色(0xFFF0FFF9);
+                      路径.reset();
+                      路径.moveTo(0, -r * 0.68f);
+                      路径.lineTo(r * 0.54f, -r * 0.38f);
+                      路径.lineTo(r * 0.43f, r * 0.28f);
+                      路径.quadTo(0, r * 0.70f, -r * 0.43f, r * 0.28f);
+                      路径.lineTo(-r * 0.54f, -r * 0.38f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                  } else {
+                      文本(c, "?", 0, r * 0.48f, r * 1.35f,
+                              Color.WHITE, Paint.Align.CENTER, true);
+                  }
+                  c.restore();
+              }
+
+              private void 绘制小鸟(Canvas c, float x, float y, float scale, boolean 菜单鸟) {
+                  float r = 小鸟半径 * scale;
+                  float wing = (float) Math.sin(动画时间 * (状态 == 游戏中 ? 18 : 5)) * 0.5f + 0.5f;
+
+                  if (!菜单鸟 && 冲刺时间 > 0f) {
+                      for (int i = 5; i >= 1; i--) {
+                          float tx = x - r * i * 0.90f;
+                          float tr = r * (1f - i * 0.10f);
+                          画笔.setShader(new RadialGradient(tx, y, tr * 1.6f,
+                                  Color.argb(110 - i * 13, 255, 90 + i * 14, 35),
+                                  0x00FF5A24, Shader.TileMode.CLAMP));
+                          c.drawCircle(tx, y, tr * 1.6f, 画笔);
+                      }
+                      画笔.setShader(null);
+                  }
+
+                  if (!菜单鸟 && (无敌时间 > 0f || 冲刺时间 > 0f)) {
+                      float pulse = 1f + 0.08f * (float) Math.sin(动画时间 * 9);
+                      int hue = Color.HSVToColor(new float[]{
+                              (float) ((动画时间 * 95) % 360), 0.58f, 1f});
+                      描边.setColor(设透明(hue, 190));
+                      描边.setStrokeWidth(r * 0.13f);
+                      c.drawCircle(x, y, r * 1.58f * pulse, 描边);
+                      描边.setColor(设透明(Color.WHITE, 145));
+                      描边.setStrokeWidth(r * 0.055f);
+                      c.drawCircle(x, y, r * 1.88f * (2f - pulse), 描边);
+                      for (int i = 0; i < 6; i++) {
+                          float a = (float) 动画时间 * 2.8f + i * 1.047f;
+                          纯色(设透明(hue, 210));
+                          c.drawCircle(x + (float) Math.cos(a) * r * 1.8f,
+                                  y + (float) Math.sin(a) * r * 1.8f,
+                                  r * 0.10f, 画笔);
+                      }
+                  }
+
+                  if (!菜单鸟 && 护盾可挡 && 护盾时间 > 0f) {
+                      画笔.setShader(new RadialGradient(x - r * 0.3f, y - r * 0.4f,
+                              r * 2.1f, 0x2259FFD1, 0x0059FFD1, Shader.TileMode.CLAMP));
+                      c.drawCircle(x, y, r * 1.78f, 画笔);
+                      画笔.setShader(null);
+                      描边.setColor(0xBB67FFD4);
+                      描边.setStrokeWidth(r * 0.11f);
+                      绘制六边形(c, x, y, r * 1.72f, 描边);
+                  }
+
+                  c.save();
+                  c.rotate(菜单鸟 ? -8f : 小鸟旋转, x, y);
+
+                  描边.setColor(0xFF513515);
+                  描边.setStrokeWidth(r * 0.12f);
+                  画笔.setShader(new RadialGradient(x - r * 0.38f, y - r * 0.38f,
+                          r * 1.75f, 0xFFFFEA68, 0xFFF0A928, Shader.TileMode.CLAMP));
+                  c.drawOval(x - r * 1.20f, y - r * 0.88f,
+                          x + r * 1.13f, y + r * 0.92f, 画笔);
+                  画笔.setShader(null);
+                  c.drawOval(x - r * 1.20f, y - r * 0.88f,
+                          x + r * 1.13f, y + r * 0.92f, 描边);
+
+                  纯色(0xFFE98C22);
+                  路径.reset();
+                  路径.moveTo(x - r * 0.15f, y + r * 0.08f);
+                  路径.quadTo(x - r * 1.02f, y + r * (0.25f + wing * 0.50f),
+                          x - r * 0.92f, y + r * (0.76f + wing * 0.18f));
+                  路径.quadTo(x - r * 0.24f, y + r * 0.75f,
+                          x + r * 0.18f, y + r * 0.26f);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+                  c.drawPath(路径, 描边);
+
+                  纯色(Color.WHITE);
+                  c.drawCircle(x + r * 0.46f, y - r * 0.30f, r * 0.48f, 画笔);
+                  描边.setStrokeWidth(r * 0.09f);
+                  c.drawCircle(x + r * 0.46f, y - r * 0.30f, r * 0.48f, 描边);
+                  纯色(0xFF1F2933);
+                  c.drawCircle(x + r * 0.60f, y - r * 0.27f, r * 0.18f, 画笔);
+                  纯色(Color.WHITE);
+                  c.drawCircle(x + r * 0.66f, y - r * 0.34f, r * 0.055f, 画笔);
+
+                  纯色(0xFFFF713C);
+                  路径.reset();
+                  路径.moveTo(x + r * 0.82f, y - r * 0.04f);
+                  路径.lineTo(x + r * 1.72f, y + r * 0.16f);
+                  路径.lineTo(x + r * 0.82f, y + r * 0.32f);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+                  描边.setColor(0xFF7A381B);
+                  描边.setStrokeWidth(r * 0.09f);
+                  c.drawPath(路径, 描边);
+                  描边.setStrokeWidth(r * 0.06f);
+                  c.drawLine(x + r * 0.88f, y + r * 0.16f,
+                          x + r * 1.55f, y + r * 0.16f, 描边);
+                  c.restore();
+              }
+
+              private void 绘制猎手(Canvas c) {
+                  if (猎手状态 == 0) return;
+                  if (猎手状态 == 1) {
+                      float pulse = 0.45f + 0.55f
+                              * (float) Math.sin((1.1f - 猎手计时) * 18f);
+                      float x = 宽 * 0.972f;
+                      画笔.setShader(new RadialGradient(x, 猎手Y, 宽 * 0.09f,
+                              Color.argb((int) (95 * pulse), 255, 73, 47),
+                              0x00FF492F, Shader.TileMode.CLAMP));
+                      c.drawCircle(x, 猎手Y, 宽 * 0.09f, 画笔);
+                      画笔.setShader(null);
+                      纯色(Color.argb((int) (150 + 80 * pulse), 255, 103, 56));
+                      c.drawCircle(x - 宽 * 0.013f, 猎手Y - 宽 * 0.010f,
+                              宽 * 0.006f, 画笔);
+                      c.drawCircle(x + 宽 * 0.013f, 猎手Y - 宽 * 0.010f,
+                              宽 * 0.006f, 画笔);
+                      描边.setStrokeWidth(宽 * 0.006f);
+                      描边.setColor(Color.argb((int) (130 + 80 * pulse), 255, 129, 65));
+                      c.drawLine(宽 * 0.94f, 猎手Y, 宽 * 0.89f, 猎手Y, 描边);
+                  } else {
+                      float r = 宽 * 0.050f;
+                      c.save();
+                      c.translate(猎手X, 猎手Y);
+                      float flap = (float) Math.sin(动画时间 * 24);
+                      纯色(0xFF12131B);
+                      c.drawOval(-r * 1.25f, -r * 0.62f, r * 1.08f, r * 0.68f, 画笔);
+                      路径.reset();
+                      路径.moveTo(-r * 0.18f, -r * 0.10f);
+                      路径.quadTo(-r * 1.00f, -r * (1.25f + flap * 0.35f),
+                              -r * 1.76f, -r * 0.72f);
+                      路径.quadTo(-r * 1.10f, -r * 0.12f, -r * 0.24f, r * 0.30f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                      路径.reset();
+                      路径.moveTo(-r * 0.10f, r * 0.06f);
+                      路径.quadTo(-r * 0.94f, r * (1.20f + flap * 0.32f),
+                              -r * 1.67f, r * 0.78f);
+                      路径.quadTo(-r * 1.05f, r * 0.18f, -r * 0.18f, -r * 0.24f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                      纯色(0xFFFF6B39);
+                      c.drawCircle(r * 0.56f, -r * 0.20f, r * 0.10f, 画笔);
+                      c.drawCircle(r * 0.56f, r * 0.18f, r * 0.10f, 画笔);
+                      纯色(0xFF573219);
+                      路径.reset();
+                      路径.moveTo(r * 0.82f, -r * 0.18f);
+                      路径.lineTo(r * 1.50f, 0);
+                      路径.lineTo(r * 0.82f, r * 0.18f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                      c.restore();
+                  }
+              }
+
+              private void 绘制粒子(Canvas c) {
+                  for (粒子 p : 粒子组) {
+                      float a = 限制(p.生命 / p.总生命, 0f, 1f);
+                      纯色(设透明(p.颜色, (int) (255 * a)));
+                      if (p.方形) {
+                          c.save();
+                          c.rotate(p.旋转, p.x, p.y);
+                          c.drawRect(p.x - p.半径, p.y - p.半径,
+                                  p.x + p.半径, p.y + p.半径, 画笔);
+                          c.restore();
+                      } else {
+                          c.drawCircle(p.x, p.y, p.半径 * (0.45f + 0.55f * a), 画笔);
+                      }
+                  }
+              }
+
+              private void 绘制浮字(Canvas c) {
+                  for (浮字 f : 浮字组) {
+                      float a = 限制(f.生命 / f.总生命, 0f, 1f);
+                      文本(c, f.文字, f.x, f.y, 宽 * 0.036f,
+                              设透明(f.颜色, (int) (255 * Math.min(1f, a * 1.8f))),
+                              Paint.Align.CENTER, true);
+                  }
+              }
+
+              private void 绘制冻结特效(Canvas c) {
+                  float 强 = 限制(冻结时间 / 0.45f, 0f, 1f);
+                  int alpha = (int) ((当前地图 == 冰天雪地 ? 50 : 40) * 强);
+                  渐变矩形(c, 0, 0, 宽, 高,
+                          Color.argb(alpha, 72, 185, 255),
+                          Color.argb(alpha + 12, 178, 238, 255), true);
+
+                  描边.setColor(Color.argb((int) (145 * 强), 220, 250, 255));
+                  描边.setStrokeWidth(宽 * 0.004f);
+                  for (int i = 0; i < 20; i++) {
+                      float x = 循环位置((float) (i * 127 - 动画时间 * 宽 * 0.22), 宽 + 80) - 40;
+                      float y = 循环位置((float) (i * 173 + 动画时间 * 高 * 0.18), 高);
+                      c.drawLine(x, y, x + 宽 * 0.035f, y - 高 * 0.026f, 描边);
+                  }
+
+                  描边.setStrokeWidth(宽 * (当前地图 == 冰天雪地 ? 0.007f : 0.005f));
+                  描边.setColor(Color.argb((int) (180 * 强), 225, 251, 255));
+                  float edge = 宽 * 0.035f;
+                  for (int i = 0; i < 7; i++) {
+                      float y = i * 高 / 6f;
+                      c.drawLine(0, y, edge * (0.6f + (i % 3) * 0.25f),
+                              y + 高 * 0.025f, 描边);
+                      c.drawLine(宽, y, 宽 - edge * (0.6f + (i % 2) * 0.35f),
+                              y - 高 * 0.022f, 描边);
+                  }
+                  if (当前地图 == 冰天雪地) {
+                      for (int i = 0; i < 5; i++) {
+                          float x = 宽 * (0.10f + i * 0.20f);
+                          float y = 高 * (0.08f + (i % 2) * 0.77f);
+                          描边.setColor(Color.argb((int) (135 * 强), 255, 255, 255));
+                          描边.setStrokeWidth(宽 * 0.0035f);
+                          for (int j = 0; j < 3; j++) {
+                              float a = j * 1.047f + (float) 动画时间 * 0.22f;
+                              c.drawLine(x - (float) Math.cos(a) * 宽 * 0.032f,
+                                      y - (float) Math.sin(a) * 宽 * 0.032f,
+                                      x + (float) Math.cos(a) * 宽 * 0.032f,
+                                      y + (float) Math.sin(a) * 宽 * 0.032f, 描边);
+                          }
+                      }
+                  }
+              }
+
+              private void 绘制HUD(Canvas c) {
+                  float pad = 宽 * 0.028f;
+                  float top = 高 * 0.026f;
+                  float chipH = 高 * 0.047f;
+
+                  绘制玻璃框(c, pad, top, 宽 * 0.245f, top + chipH, 0x4D071521);
+                  文本(c, String.format(Locale.CHINA, "%.1f 秒", 经过秒数),
+                          宽 * 0.136f, top + chipH * 0.67f, 宽 * 0.032f,
+                          Color.WHITE, Paint.Align.CENTER, true);
+
+                  绘制玻璃框(c, 宽 * 0.265f, top, 宽 * 0.485f,
+                          top + chipH, 0x4D071521);
+                  文本(c, 跨越障碍 + " 障碍", 宽 * 0.375f,
+                          top + chipH * 0.67f, 宽 * 0.032f,
+                          Color.WHITE, Paint.Align.CENTER, true);
+
+                  绘制玻璃框(c, 宽 * 0.505f, top, 宽 * 0.845f,
+                          top + chipH, 0x5D071521);
+                  文本(c, "得分 " + 当前分数(), 宽 * 0.675f,
+                          top + chipH * 0.69f, 宽 * 0.038f,
+                          0xFFFFE783, Paint.Align.CENTER, true);
+
+                  绘制玻璃框(c, 暂停按钮.left, 暂停按钮.top,
+                          暂停按钮.right, 暂停按钮.bottom, 0x5D071521);
+                  纯色(Color.WHITE);
+                  float barW = 宽 * 0.008f;
+                  c.drawRoundRect(宽 * 0.907f, 高 * 0.038f,
+                          宽 * 0.907f + barW, 高 * 0.063f,
+                          barW * 0.4f, barW * 0.4f, 画笔);
+                  c.drawRoundRect(宽 * 0.932f, 高 * 0.038f,
+                          宽 * 0.932f + barW, 高 * 0.063f,
+                          barW * 0.4f, barW * 0.4f, 画笔);
+
+                  float heartY = 高 * 0.102f;
+                  for (int i = 0; i < 设定生命; i++) {
+                      float hx = 宽 * (0.875f - i * 0.075f);
+                      绘制爱心(c, hx, heartY, 宽 * 0.025f,
+                              i < 剩余生命 ? 0xFFFF5D69 : 0x555F6470);
+                  }
+
+                  文本(c, String.format(Locale.CHINA, "速度 ×%.2f", 难度倍率),
+                          宽 * 0.03f, 高 * 0.105f, 宽 * 0.024f,
+                          0xDDEBFAFF, Paint.Align.LEFT, true);
+                  float barLeft = 宽 * 0.03f;
+                  float barTop = 高 * 0.116f;
+                  float barRight = 宽 * 0.34f;
+                  纯色(0x3DFFFFFF);
+                  c.drawRoundRect(barLeft, barTop, barRight, barTop + 高 * 0.006f,
+                          高 * 0.003f, 高 * 0.003f, 画笔);
+                  画笔.setShader(new LinearGradient(barLeft, 0, barRight, 0,
+                          0xFF65E4B5, 0xFFFFB84A, Shader.TileMode.CLAMP));
+                  float progress = (难度倍率 - 1f) / 2.5f;
+                  c.drawRoundRect(barLeft, barTop,
+                          barLeft + (barRight - barLeft) * progress,
+                          barTop + 高 * 0.006f, 高 * 0.003f, 高 * 0.003f, 画笔);
+                  画笔.setShader(null);
+
+                  float effectY = 高 * 0.145f;
+                  float effectX = 宽 * 0.03f;
+                  if (冲刺时间 > 0f) {
+                      effectX = 绘制效果徽章(c, effectX, effectY,
+                              "冲刺 " + 一位小数(冲刺时间), 0xDDF04435);
+                  }
+                  if (冻结时间 > 0f) {
+                      effectX = 绘制效果徽章(c, effectX, effectY,
+                              "冰封 " + 一位小数(冻结时间), 0xDD278CC7);
+                  }
+                  if (无敌时间 > 0f) {
+                      effectX = 绘制效果徽章(c, effectX, effectY,
+                              "无敌 " + 一位小数(无敌时间), 0xDDBB8425);
+                  }
+                  if (护盾可挡 && 护盾时间 > 0f) {
+                      绘制效果徽章(c, effectX, effectY,
+                              "护盾 " + 一位小数(护盾时间), 0xDD168963);
+                  }
+
+                  if (设定生命 == 1) {
+                      文本(c, "本图最高 " + 读取最高分(当前地图),
+                              宽 * 0.97f, 高 * 0.132f, 宽 * 0.022f,
+                              0xCFFFFFFF, Paint.Align.RIGHT, true);
+                  }
+
+                  if (经过秒数 < 2.5f) {
+                      float alpha = 限制(1f - Math.max(0f, 经过秒数 - 1.4f) / 1.1f, 0f, 1f);
+                      文本(c, "轻触屏幕，让小鸟向上飞",
+                              宽 * 0.5f, 高 * 0.77f, 宽 * 0.036f,
+                              Color.argb((int) (220 * alpha), 255, 255, 255),
+                              Paint.Align.CENTER, true);
+                  }
+              }
+
+              private float 绘制效果徽章(Canvas c, float x, float y,
+                                      String text, int color) {
+                  画笔.setTextSize(宽 * 0.022f);
+                  float tw = 画笔.measureText(text) + 宽 * 0.036f;
+                  纯色(color);
+                  c.drawRoundRect(x, y, x + tw, y + 高 * 0.032f,
+                          高 * 0.016f, 高 * 0.016f, 画笔);
+                  文本(c, text, x + tw * 0.5f, y + 高 * 0.022f,
+                          宽 * 0.021f, Color.WHITE, Paint.Align.CENTER, true);
+                  return x + tw + 宽 * 0.012f;
+              }
+
+              private void 绘制菜单(Canvas c) {
+                  渐变矩形(c, 0, 0, 宽, 高,
+                          0x08000000, 0x75031522, true);
+
+                  文本(c, "果 翼 飞 翔", 宽 * 0.5f, 高 * 0.105f,
+                          宽 * 0.075f, Color.WHITE, Paint.Align.CENTER, true);
+                  文本(c, "穿越四境 · 收集奇迹果实", 宽 * 0.5f, 高 * 0.137f,
+                          宽 * 0.026f, 0xDDE9F9FF, Paint.Align.CENTER, false);
+                  绘制小鸟(c, 宽 * 0.5f,
+                          高 * 0.215f + (float) Math.sin(动画时间 * 2.2) * 高 * 0.008f,
+                          1.88f, true);
+
+                  文本(c, "选择地图", 宽 * 0.075f, 高 * 0.292f,
+                          宽 * 0.032f, Color.WHITE, Paint.Align.LEFT, true);
+                  for (int i = 0; i < 4; i++) 绘制地图卡(c, i, 地图按钮[i]);
+
+                  绘制玻璃框(c, 宽 * 0.11f, 高 * 0.585f,
+                          宽 * 0.89f, 高 * 0.712f, 0x65061522);
+                  文本(c, "初始生命值", 宽 * 0.5f, 高 * 0.623f,
+                          宽 * 0.030f, 0xFFEAF9FF, Paint.Align.CENTER, true);
+                  绘制圆按钮(c, 减生命按钮, "−");
+                  绘制圆按钮(c, 加生命按钮, "+");
+                  for (int i = 0; i < 设定生命; i++) {
+                      float total = (设定生命 - 1) * 宽 * 0.064f;
+                      绘制爱心(c, 宽 * 0.5f - total * 0.5f + i * 宽 * 0.064f,
+                              高 * 0.660f, 宽 * 0.028f, 0xFFFF5D69);
+                  }
+                  if (设定生命 == 1) {
+                      文本(c, "当前地图最高得分  " + 读取最高分(当前地图),
+                              宽 * 0.5f, 高 * 0.697f, 宽 * 0.025f,
+                              0xFFFFE783, Paint.Align.CENTER, true);
+                  } else {
+                      文本(c, "生命值大于 1：本局不计入最高得分",
+                              宽 * 0.5f, 高 * 0.697f, 宽 * 0.024f,
+                              0xFFFFB98C, Paint.Align.CENTER, true);
+                  }
+
+                  String 地图说明;
+                  if (当前地图 == 经典管道) 地图说明 = "清新原野 · 10% 概率经历昼夜";
+                  else if (当前地图 == 危险山峰) 地图说明 = "峰峦险境 · 每局自然昼夜流转";
+                  else if (当前地图 == 冰天雪地) 地图说明 = "冰雹无伤害 · 冻结果实概率提升";
+                  else 地图说明 = "幽影猎手 · 稀有雨局 · 闪避奖励";
+                  文本(c, 地图说明, 宽 * 0.5f, 高 * 0.757f,
+                          宽 * 0.025f, 0xDDE7F7FF, Paint.Align.CENTER, false);
+
+                  绘制主按钮(c, 开始按钮, "开始飞翔");
+                  文本(c, "点击飞行 · 果实低概率出现 · 最高速度 3.5×",
+                          宽 * 0.5f, 高 * 0.925f, 宽 * 0.021f,
+                          0xAFFFFFFF, Paint.Align.CENTER, false);
+              }
+
+              private void 绘制地图卡(Canvas c, int map, RectF r) {
+                  int[] 色 = {
+                          0xE04FAFD0, 0xE0493A45, 0xE05A9FC1, 0xE0103B31
+                  };
+                  int[] 底色 = {
+                          0xE07DD16A, 0xE01B2936, 0xE0D6F6FF, 0xE007201C
+                  };
+                  渐变圆角矩形(c, r, 色[map], 底色[map], 高 * 0.020f);
+                  if (map == 当前地图) {
+                      描边.setColor(0xFFFFE57B);
+                      描边.setStrokeWidth(宽 * 0.008f);
+                      c.drawRoundRect(r, 高 * 0.020f, 高 * 0.020f, 描边);
+                      纯色(0xFFFFE57B);
+                      c.drawCircle(r.right - 宽 * 0.035f,
+                              r.top + 宽 * 0.035f, 宽 * 0.018f, 画笔);
+                      文本(c, "✓", r.right - 宽 * 0.035f,
+                              r.top + 宽 * 0.044f, 宽 * 0.022f,
+                              0xFF21302A, Paint.Align.CENTER, true);
+                  } else {
+                      描边.setColor(0x55FFFFFF);
+                      描边.setStrokeWidth(宽 * 0.003f);
+                      c.drawRoundRect(r, 高 * 0.020f, 高 * 0.020f, 描边);
+                  }
+
+                  float ix = r.left + 宽 * 0.082f;
+                  float iy = r.centerY() - 高 * 0.006f;
+                  if (map == 经典管道) {
+                      纯色(0xFF56C95A);
+                      c.drawRoundRect(ix - 宽 * 0.025f, iy - 高 * 0.034f,
+                              ix + 宽 * 0.024f, iy + 高 * 0.039f,
+                              宽 * 0.008f, 宽 * 0.008f, 画笔);
+                      纯色(0xFF91E66D);
+                      c.drawRoundRect(ix - 宽 * 0.035f, iy - 高 * 0.034f,
+                              ix + 宽 * 0.035f, iy - 高 * 0.019f,
+                              宽 * 0.006f, 宽 * 0.006f, 画笔);
+                  } else if (map == 危险山峰) {
+                      纯色(0xFFC5D0D3);
+                      路径.reset();
+                      路径.moveTo(ix - 宽 * 0.058f, iy + 高 * 0.035f);
+                      路径.lineTo(ix, iy - 高 * 0.045f);
+                      路径.lineTo(ix + 宽 * 0.064f, iy + 高 * 0.035f);
+                      路径.close();
+                      c.drawPath(路径, 画笔);
+                  } else if (map == 冰天雪地) {
+                      描边.setColor(Color.WHITE);
+                      描边.setStrokeWidth(宽 * 0.006f);
+                      for (int i = 0; i < 3; i++) {
+                          float a = i * 1.047f;
+                          c.drawLine(ix - (float) Math.cos(a) * 宽 * 0.047f,
+                                  iy - (float) Math.sin(a) * 宽 * 0.047f,
+                                  ix + (float) Math.cos(a) * 宽 * 0.047f,
+                                  iy + (float) Math.sin(a) * 宽 * 0.047f, 描边);
+                      }
+                  } else {
+                      纯色(0xFF081B18);
+                      c.drawRoundRect(ix - 宽 * 0.016f, iy - 高 * 0.010f,
+                              ix + 宽 * 0.016f, iy + 高 * 0.041f,
+                              宽 * 0.008f, 宽 * 0.008f, 画笔);
+                      c.drawCircle(ix, iy - 高 * 0.014f, 宽 * 0.055f, 画笔);
+                      纯色(0xFFFF7842);
+                      c.drawCircle(ix - 宽 * 0.017f, iy - 高 * 0.015f,
+                              宽 * 0.005f, 画笔);
+                      c.drawCircle(ix + 宽 * 0.017f, iy - 高 * 0.015f,
+                              宽 * 0.005f, 画笔);
+                  }
+
+                  String[] names = {"经典管道", "危险山峰", "冰天雪地", "黑暗丛林"};
+                  String[] subs = {"清新 · 经典", "昼夜 · 峰峦", "冰雹 · 极光", "猎手 · 雨林"};
+                  文本(c, names[map], r.left + 宽 * 0.155f, r.top + 高 * 0.051f,
+                          宽 * 0.030f, Color.WHITE, Paint.Align.LEFT, true);
+                  文本(c, subs[map], r.left + 宽 * 0.155f, r.top + 高 * 0.082f,
+                          宽 * 0.021f, 0xDDEBFAFF, Paint.Align.LEFT, false);
+              }
+
+              private void 绘制暂停层(Canvas c) {
+                  纯色(0x99030C14);
+                  c.drawRect(0, 0, 宽, 高, 画笔);
+                  RectF panel = new RectF(宽 * 0.14f, 高 * 0.34f,
+                          宽 * 0.86f, 高 * 0.64f);
+                  绘制玻璃框(c, panel.left, panel.top, panel.right, panel.bottom, 0xDD102431);
+                  文本(c, "游戏已暂停", 宽 * 0.5f, 高 * 0.435f,
+                          宽 * 0.057f, Color.WHITE, Paint.Align.CENTER, true);
+                  文本(c, "轻触任意位置继续", 宽 * 0.5f, 高 * 0.505f,
+                          宽 * 0.032f, 0xFFE4F7FF, Paint.Align.CENTER, false);
+                  文本(c, "按系统返回键可回到主菜单", 宽 * 0.5f, 高 * 0.565f,
+                          宽 * 0.024f, 0xAFFFFFFF, Paint.Align.CENTER, false);
+              }
+
+              private void 绘制结束层(Canvas c) {
+                  纯色(0x9E020810);
+                  c.drawRect(0, 0, 宽, 高, 画笔);
+                  RectF panel = new RectF(宽 * 0.095f, 高 * 0.20f,
+                          宽 * 0.905f, 高 * 0.86f);
+                  绘制玻璃框(c, panel.left, panel.top, panel.right, panel.bottom, 0xEE0C202C);
+                  文本(c, "本局结束", 宽 * 0.5f, 高 * 0.285f,
+                          宽 * 0.060f, Color.WHITE, Paint.Align.CENTER, true);
+                  文本(c, String.valueOf(当前分数()), 宽 * 0.5f, 高 * 0.405f,
+                          宽 * 0.120f, 0xFFFFE26F, Paint.Align.CENTER, true);
+                  文本(c, "最终得分", 宽 * 0.5f, 高 * 0.447f,
+                          宽 * 0.026f, 0xBFFFFFFF, Paint.Align.CENTER, false);
+
+                  绘制数据列(c, 宽 * 0.23f, "时间",
+                          String.format(Locale.CHINA, "%.1f 秒", 经过秒数));
+                  绘制数据列(c, 宽 * 0.50f, "跨越", 跨越障碍 + " 个");
+                  绘制数据列(c, 宽 * 0.77f, "速度", 一位小数(难度倍率) + "×");
+
+                  if (设定生命 == 1) {
+                      int best = Math.max(读取最高分(当前地图), 当前分数());
+                      文本(c, "本地图历史最高  " + best,
+                              宽 * 0.5f, 高 * 0.605f, 宽 * 0.030f,
+                              0xFF95F0C8, Paint.Align.CENTER, true);
+                  } else {
+                      文本(c, "多生命模式不记录历史最高分",
+                              宽 * 0.5f, 高 * 0.605f, 宽 * 0.027f,
+                              0xFFFFB68B, Paint.Align.CENTER, true);
+                  }
+                  绘制主按钮(c, 重来按钮, "再飞一次");
+                  绘制次按钮(c, 返回按钮, "返回地图选择");
+              }
+
+              private void 绘制数据列(Canvas c, float x, String label, String value) {
+                  文本(c, value, x, 高 * 0.525f, 宽 * 0.034f,
+                          Color.WHITE, Paint.Align.CENTER, true);
+                  文本(c, label, x, 高 * 0.559f, 宽 * 0.022f,
+                          0xAFFFFFFF, Paint.Align.CENTER, false);
+              }
+
+              private void 绘制提示(Canvas c) {
+                  float a = 限制(提示时间 / 0.35f, 0f, 1f);
+                  float top = 高 * 0.735f;
+                  画笔.setTextSize(宽 * 0.025f);
+                  float tw = 画笔.measureText(提示文字) + 宽 * 0.09f;
+                  纯色(Color.argb((int) (220 * a), 25, 26, 35));
+                  c.drawRoundRect(宽 * 0.5f - tw * 0.5f, top,
+                          宽 * 0.5f + tw * 0.5f, top + 高 * 0.049f,
+                          高 * 0.024f, 高 * 0.024f, 画笔);
+                  文本(c, 提示文字, 宽 * 0.5f, top + 高 * 0.033f,
+                          宽 * 0.024f, Color.argb((int) (255 * a), 255, 220, 180),
+                          Paint.Align.CENTER, true);
+              }
+
+              private void 绘制圆按钮(Canvas c, RectF r, String text) {
+                  纯色(0x38FFFFFF);
+                  c.drawOval(r, 画笔);
+                  描边.setColor(0x88FFFFFF);
+                  描边.setStrokeWidth(宽 * 0.003f);
+                  c.drawOval(r, 描边);
+                  文本(c, text, r.centerX(), r.centerY() + 宽 * 0.018f,
+                          宽 * 0.050f, Color.WHITE, Paint.Align.CENTER, false);
+              }
+
+              private void 绘制主按钮(Canvas c, RectF r, String text) {
+                  画笔.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom,
+                          0xFFFFD34E, 0xFFFF8A3D, Shader.TileMode.CLAMP));
+                  c.drawRoundRect(r, 高 * 0.035f, 高 * 0.035f, 画笔);
+                  画笔.setShader(null);
+                  描边.setColor(0x88FFFFFF);
+                  描边.setStrokeWidth(宽 * 0.004f);
+                  c.drawRoundRect(r, 高 * 0.035f, 高 * 0.035f, 描边);
+                  文本(c, text, r.centerX(), r.centerY() + 宽 * 0.017f,
+                          宽 * 0.043f, 0xFF352411, Paint.Align.CENTER, true);
+              }
+
+              private void 绘制次按钮(Canvas c, RectF r, String text) {
+                  纯色(0x29FFFFFF);
+                  c.drawRoundRect(r, 高 * 0.031f, 高 * 0.031f, 画笔);
+                  描边.setColor(0x77FFFFFF);
+                  描边.setStrokeWidth(宽 * 0.003f);
+                  c.drawRoundRect(r, 高 * 0.031f, 高 * 0.031f, 描边);
+                  文本(c, text, r.centerX(), r.centerY() + 宽 * 0.014f,
+                          宽 * 0.034f, Color.WHITE, Paint.Align.CENTER, true);
+              }
+
+              private void 绘制玻璃框(Canvas c, float l, float t, float r, float b, int color) {
+                  纯色(color);
+                  c.drawRoundRect(l, t, r, b, 高 * 0.022f, 高 * 0.022f, 画笔);
+                  描边.setColor(0x35FFFFFF);
+                  描边.setStrokeWidth(宽 * 0.0025f);
+                  c.drawRoundRect(l, t, r, b, 高 * 0.022f, 高 * 0.022f, 描边);
+              }
+
+              private void 绘制爱心(Canvas c, float x, float y, float r, int color) {
+                  纯色(color);
+                  路径.reset();
+                  路径.moveTo(x, y + r * 0.86f);
+                  路径.cubicTo(x - r * 1.38f, y + r * 0.03f,
+                          x - r * 0.95f, y - r * 0.92f, x - r * 0.38f, y - r * 0.70f);
+                  路径.cubicTo(x - r * 0.08f, y - r * 0.58f,
+                          x, y - r * 0.32f, x, y - r * 0.25f);
+                  路径.cubicTo(x, y - r * 0.32f,
+                          x + r * 0.08f, y - r * 0.58f, x + r * 0.38f, y - r * 0.70f);
+                  路径.cubicTo(x + r * 0.95f, y - r * 0.92f,
+                          x + r * 1.38f, y + r * 0.03f, x, y + r * 0.86f);
+                  路径.close();
+                  c.drawPath(路径, 画笔);
+                  纯色(设透明(Color.WHITE, 85));
+                  c.drawCircle(x - r * 0.40f, y - r * 0.38f, r * 0.16f, 画笔);
+              }
+
+              private void 绘制星形(Canvas c, float cx, float cy, float outer,
+                                  float inner, int points, Paint paint) {
+                  路径.reset();
+                  for (int i = 0; i < points * 2; i++) {
+                      float a = -1.5708f + i * 3.14159f / points;
+                      float rr = (i & 1) == 0 ? outer : inner;
+                      float x = cx + (float) Math.cos(a) * rr;
+                      float y = cy + (float) Math.sin(a) * rr;
+                      if (i == 0) 路径.moveTo(x, y);
+                      else 路径.lineTo(x, y);
+                  }
+                  路径.close();
+                  c.drawPath(路径, paint);
+              }
+
+              private void 绘制六边形(Canvas c, float cx, float cy, float r, Paint paint) {
+                  路径.reset();
+                  for (int i = 0; i < 6; i++) {
+                      float a = -1.5708f + i * 1.0472f;
+                      float x = cx + (float) Math.cos(a) * r;
+                      float y = cy + (float) Math.sin(a) * r;
+                      if (i == 0) 路径.moveTo(x, y);
+                      else 路径.lineTo(x, y);
+                  }
+                  路径.close();
+                  c.drawPath(路径, paint);
+              }
+
+              @Override
+              public boolean onTouchEvent(MotionEvent event) {
+                  if (event.getAction() != MotionEvent.ACTION_DOWN) return true;
+                  float x = event.getX();
+                  float y = event.getY();
+                  performClick();
+
+                  if (状态 == 菜单) {
+                      for (int i = 0; i < 4; i++) {
+                          if (地图按钮[i].contains(x, y)) {
+                              当前地图 = i;
+                              if (当前地图 == 危险山峰) 天色相位 = 0.50f;
+                              音效.startTone(ToneGenerator.TONE_PROP_BEEP, 45);
+                              return true;
+                          }
+                      }
+                      if (减生命按钮.contains(x, y)) {
+                          设定生命 = Math.max(1, 设定生命 - 1);
+                          if (设定生命 == 1) {
+                              提示文字 = "单生命模式会正常记录最高得分";
+                              提示时间 = 2.2f;
+                          }
+                          音效.startTone(ToneGenerator.TONE_PROP_BEEP, 35);
+                      } else if (加生命按钮.contains(x, y)) {
+                          设定生命 = Math.min(3, 设定生命 + 1);
+                          if (设定生命 > 1) {
+                              提示文字 = "生命值大于一将不记入最高得分";
+                              提示时间 = 2.8f;
+                          }
+                          音效.startTone(ToneGenerator.TONE_PROP_BEEP, 35);
+                      } else if (开始按钮.contains(x, y)) {
+                          开始游戏();
+                      }
+                  } else if (状态 == 游戏中) {
+                      if (暂停按钮.contains(x, y)) {
+                          状态 = 暂停;
+                          音效.startTone(ToneGenerator.TONE_PROP_BEEP, 45);
+                      } else {
+                          扇动翅膀();
+                      }
+                  } else if (状态 == 暂停) {
+                      状态 = 游戏中;
+                      上帧时间 = System.nanoTime();
+                  } else if (状态 == 结束) {
+                      if (重来按钮.contains(x, y)) {
+                          开始游戏();
+                      } else if (返回按钮.contains(x, y)) {
+                          状态 = 菜单;
+                          提示时间 = 0f;
+                      }
+                  }
+                  return true;
+              }
+
+              @Override
+              public boolean performClick() {
+                  super.performClick();
+                  return true;
+              }
+
+              void pauseFromSystem() {
+                  if (状态 == 游戏中) 状态 = 暂停;
+              }
+
+              boolean handleBack() {
+                  if (状态 == 游戏中) {
+                      状态 = 暂停;
+                      return true;
+                  }
+                  if (状态 == 暂停 || 状态 == 结束) {
+                      状态 = 菜单;
+                      提示时间 = 0f;
+                      return true;
+                  }
+                  return false;
+              }
+
+              @Override
+              protected void onDetachedFromWindow() {
+                  super.onDetachedFromWindow();
+                  音效.release();
+              }
+
+              private void 纯色(int color) {
+                  画笔.setShader(null);
+                  画笔.setStyle(Paint.Style.FILL);
+                  画笔.setColor(color);
+                  画笔.setAlpha(Color.alpha(color));
+                  画笔.setFakeBoldText(false);
+              }
+
+              private void 渐变矩形(Canvas c, float l, float t, float r, float b,
+                                  int c1, int c2, boolean vertical) {
+                  画笔.setStyle(Paint.Style.FILL);
+                  画笔.setShader(new LinearGradient(l, t,
+                          vertical ? l : r, vertical ? b : t,
+                          c1, c2, Shader.TileMode.CLAMP));
+                  c.drawRect(l, t, r, b, 画笔);
+                  画笔.setShader(null);
+              }
+
+              private void 渐变圆角矩形(Canvas c, RectF r, int c1, int c2, float radius) {
+                  画笔.setShader(new LinearGradient(r.left, r.top, r.right, r.bottom,
+                          c1, c2, Shader.TileMode.CLAMP));
+                  c.drawRoundRect(r, radius, radius, 画笔);
+                  画笔.setShader(null);
+              }
+
+              private void 文本(Canvas c, String text, float x, float y, float size,
+                              int color, Paint.Align align, boolean bold) {
+                  画笔.setShader(null);
+                  画笔.setStyle(Paint.Style.FILL);
+                  画笔.setColor(color);
+                  画笔.setAlpha(Color.alpha(color));
+                  画笔.setTextAlign(align);
+                  画笔.setTextSize(size);
+                  画笔.setFakeBoldText(bold);
+                  c.drawText(text, x, y, 画笔);
+                  画笔.setFakeBoldText(false);
+              }
+
+              private int 循环取色(float phase, int[] colors) {
+                  float p = phase - (float) Math.floor(phase);
+                  float scaled = p * colors.length;
+                  int i = (int) Math.floor(scaled) % colors.length;
+                  int j = (i + 1) % colors.length;
+                  return 混色(colors[i], colors[j], scaled - (float) Math.floor(scaled));
+              }
+
+              private int 混色(int a, int b, float t) {
+                  t = 限制(t, 0f, 1f);
+                  return Color.argb(
+                          (int) (Color.alpha(a) + (Color.alpha(b) - Color.alpha(a)) * t),
+                          (int) (Color.red(a) + (Color.red(b) - Color.red(a)) * t),
+                          (int) (Color.green(a) + (Color.green(b) - Color.green(a)) * t),
+                          (int) (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t)
+                  );
+              }
+
+              private int 调亮(int color, float amount) {
+                  float[] hsv = new float[3];
+                  Color.colorToHSV(color, hsv);
+                  hsv[2] = 限制(hsv[2] + amount, 0f, 1f);
+                  return Color.HSVToColor(Color.alpha(color), hsv);
+              }
+
+              private int 设透明(int color, int alpha) {
+                  return Color.argb(Math.max(0, Math.min(255, alpha)),
+                          Color.red(color), Color.green(color), Color.blue(color));
+              }
+
+              private int 地图主色() {
+                  if (当前地图 == 经典管道) return 0xFF55BE4D;
+                  if (当前地图 == 危险山峰) return 0xFF65727A;
+                  if (当前地图 == 冰天雪地) return 0xFF6DD7EC;
+                  return 0xFF6A412A;
+              }
+
+              private boolean 圆矩形碰撞(float cx, float cy, float cr,
+                                     float left, float top, float right, float bottom) {
+                  float px = 限制(cx, left, right);
+                  float py = 限制(cy, top, bottom);
+                  return 距离平方(cx, cy, px, py) < cr * cr;
+              }
+
+              private float 距离平方(float x1, float y1, float x2, float y2) {
+                  return 平方(x1 - x2) + 平方(y1 - y2);
+              }
+
+              private float 平方(float v) {
+                  return v * v;
+              }
+
+              private float 限制(float v, float min, float max) {
+                  return Math.max(min, Math.min(max, v));
+              }
+
+              private float 循环位置(float value, float range) {
+                  float v = value % range;
+                  return v < 0 ? v + range : v;
+              }
+
+              private String 一位小数(float value) {
+                  return String.format(Locale.CHINA, "%.1f", Math.max(0f, value));
+              }
+
+              private static class 管道 {
+                  float x;
+                  float 宽度;
+                  float 缺口Y;
+                  float 缺口高;
+                  float 到下一个间距;
+                  boolean 已计数;
+                  boolean 已破碎;
+              }
+
+              private static class 果实 {
+                  float x;
+                  float y;
+                  float 相位;
+                  float 旋转;
+                  float 消失时间;
+                  int 类型;
+                  boolean 已吃;
+              }
+
+              private static class 粒子 {
+                  float x;
+                  float y;
+                  float vx;
+                  float vy;
+                  float 重力;
+                  float 生命;
+                  float 总生命;
+                  float 半径;
+                  float 旋转;
+                  float 旋转速度;
+                  int 颜色;
+                  boolean 方形;
+              }
+
+              private static class 浮字 {
+                  float x;
+                  float y;
+                  float 生命;
+                  float 总生命;
+                  String 文字;
+                  int 颜色;
+              }
+          }
+          JAVA
+
+      - name: 编译 Debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace assembleDebug
+          mkdir -p output
+          cp app/build/outputs/apk/debug/app-debug.apk "output/果翼飞翔.apk"
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 果翼飞翔-Android-APK
+          path: output/果翼飞翔.apk
+          if-no-files-found: error
+          retention-days: 30
