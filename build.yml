@@ -1,0 +1,1215 @@
+name: 构建小鸟小鸟 APK
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fruit-flight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 配置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: 配置 Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: 生成最终完整 Android 游戏项目
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # 固定读取你自己的“界面与烟花优化版”历史版本，
+          # 不再要求你在手机上运行任何修改脚本。
+          curl --fail --location --retry 3 --silent --show-error \
+            "https://raw.githubusercontent.com/qilimary/Flappy-Bird-Game/f2969fcf8b04dd1d5aa8271e1091739dba572045/.github/workflows/build.yml" \
+            --output /tmp/小鸟小鸟_基础构建.yml
+
+          cat > /tmp/应用最终改进.py <<'PATCHPY'
+          #!/usr/bin/env python3
+          # -*- coding: utf-8 -*-
+          # 把当前“构建小鸟小鸟 APK”的 main.yml 自动升级为最终改进版。
+          # 用法：python apply_final_improvements.py main.yml
+          # 输出：main_最终版.yml
+          
+          from __future__ import annotations
+          
+          import re
+          import sys
+          from pathlib import Path
+          
+          
+          def 替换一次(文本: str, 旧: str, 新: str, 名称: str) -> str:
+              次数 = 文本.count(旧)
+              if 次数 != 1:
+                  raise RuntimeError(f"步骤“{名称}”需要精确匹配 1 次，实际匹配 {次数} 次。")
+              return 文本.replace(旧, 新, 1)
+          
+          
+          def 正则替换一次(文本: str, 模式: str, 新: str, 名称: str) -> str:
+              结果, 次数 = re.subn(模式, 新, 文本, count=1, flags=re.S)
+              if 次数 != 1:
+                  raise RuntimeError(f"步骤“{名称}”需要匹配 1 次，实际匹配 {次数} 次。")
+              return 结果
+          
+          
+          def 应用修改(文本: str) -> str:
+              文本 = 替换一次(
+                  文本,
+                  '''                  versionCode 4
+                            versionName "4.0"''',
+                  '''                  versionCode 5
+                            versionName "5.0"''',
+                  "升级版本号",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private float 受伤暖闪;
+                        private float 闪电光;
+                        private float 拍翅淡化;''',
+                  '''              private float 受伤暖闪;
+                        private float 闪电光;
+                        private float 拍翅淡化;
+                        private float 中毒时间;
+                        private float 中毒跳跃倍率 = 1f;
+                        private int 中毒类型;''',
+                  "加入中毒状态",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private float 龙目标Y;
+                        private float 龙速度Y;
+                        private boolean 龙碰到;''',
+                  '''              private float 龙目标Y;
+                        private float 龙速度Y;
+                        private boolean 龙碰到;
+                        private int 龙方向 = -1;
+                        private float 龙背景计时;
+                        private float 龙背景攻击等待;
+                        private boolean 龙背景后攻击;''',
+                  "加入游龙巡游和方向状态",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private boolean 显示游戏说明;
+                        private boolean 显示成就;
+                        private float 触摸起点X;''',
+                  '''              private boolean 显示游戏说明;
+                        private boolean 显示成就;
+                        private boolean 音效开启 = true;
+                        private float 触摸起点X;''',
+                  "加入音效开关状态",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private final RectF 成就按钮 = new RectF();
+                        private final RectF 问号按钮 = new RectF();''',
+                  '''              private final RectF 成就按钮 = new RectF();
+                        private final RectF 音效按钮 = new RectF();
+                        private final RectF 问号按钮 = new RectF();''',
+                  "加入音效按钮区域",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  当前皮肤序号 = 限制整数(存档.getInt("小鸟皮肤", 1), 0, 2);
+                            旧皮肤序号 = 当前皮肤序号;''',
+                  '''                  当前皮肤序号 = 限制整数(存档.getInt("小鸟皮肤", 1), 0, 2);
+                            旧皮肤序号 = 当前皮肤序号;
+                            音效开启 = 存档.getBoolean("音效开启", true);''',
+                  "读取音效设置",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  地图按钮[星河宇宙].set(宽 * 0.055f, 高 * 0.530f,
+                                    宽 * 0.945f, 高 * 0.594f);''',
+                  '''                  地图按钮[星河宇宙].set(宽 * 0.025f, 高 * 0.526f,
+                                    宽 * 0.975f, 高 * 0.600f);''',
+                  "加宽星河宇宙卡片",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  开始按钮.set(宽 * 0.14f, 高 * 0.790f, 宽 * 0.86f, 高 * 0.859f);''',
+                  '''                  开始按钮.set(宽 * 0.14f, 高 * 0.775f, 宽 * 0.86f, 高 * 0.844f);''',
+                  "上移开始按钮",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  成就按钮.set(宽 * 0.785f, 高 * 0.035f, 宽 * 0.865f, 高 * 0.075f);
+                            问号按钮.set(宽 * 0.875f, 高 * 0.035f, 宽 * 0.955f, 高 * 0.075f);''',
+                  '''                  成就按钮.set(宽 * 0.700f, 高 * 0.035f, 宽 * 0.775f, 高 * 0.075f);
+                            音效按钮.set(宽 * 0.790f, 高 * 0.035f, 宽 * 0.865f, 高 * 0.075f);
+                            问号按钮.set(宽 * 0.880f, 高 * 0.035f, 宽 * 0.955f, 高 * 0.075f);''',
+                  "布置皇冠喇叭问号按钮",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  受伤暖闪 = 0f;
+                            闪电光 = 0f;
+                            拍翅淡化 = 0f;''',
+                  '''                  受伤暖闪 = 0f;
+                            闪电光 = 0f;
+                            拍翅淡化 = 0f;
+                            中毒时间 = 0f;
+                            中毒跳跃倍率 = 1f;
+                            中毒类型 = 0;''',
+                  "重置中毒效果",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  龙状态 = 0;
+                            龙碰到 = false;
+                            龙冷却 = 10f + 随机.nextFloat() * 8f;''',
+                  '''                  龙状态 = 0;
+                            龙碰到 = false;
+                            龙方向 = -1;
+                            龙背景计时 = 0f;
+                            龙背景攻击等待 = 0f;
+                            龙背景后攻击 = false;
+                            龙冷却 = 11f + 随机.nextFloat() * 9f;''',
+                  "重置新版游龙",
+              )
+          
+              文本 = 正则替换一次(
+                  文本,
+                  r'''                  if \(当前地图 == 危险山峰\) \{
+                                // 更容易形成连绵紧贴的波峰，同时仍保留安全通道。
+                                boolean 连峰 = 随机\.nextFloat\(\) < 0\.38f;
+                                p\.宽度 = 宽 \* \(\(连峰 \? 0\.36f : 0\.30f\)
+                                        \+ 随机\.nextFloat\(\) \* \(连峰 \? 0\.090f : 0\.075f\)\);
+                                p\.到下一个间距 = 宽 \* \(\(连峰 \? 0\.305f : 0\.46f\)
+                                        \+ 随机\.nextFloat\(\) \* \(连峰 \? 0\.060f : 0\.10f\)\)
+                                        \* \(1f \+ 进度 \* \(连峰 \? 0\.035f : 0\.05f\)\);
+                                p\.上边界 = new float\[9\];
+                                p\.下边界 = new float\[9\];
+                                float top = 候选Y - 缺口高 \* 0\.5f;
+                                float bottom = 候选Y \+ 缺口高 \* 0\.5f;
+                                for \(int i = 0; i < p\.上边界\.length; i\+\+\) \{
+                                    float 波 = \(float\) Math\.sin\(i \* 1\.20f \+ \(p\.种子 & 255\) \* 0\.017f\)
+                                            \* 高 \* \(0\.018f \+ \(i % 3\) \* 0\.004f\);
+                                    float 细波 = 哈希01\(p\.种子, i \* 19 \+ 7\) \* 高 \* 0\.018f - 高 \* 0\.009f;
+                                    float 偏移 = 限制\(波 \+ 细波, -高 \* 0\.030f, 高 \* 0\.030f\);
+                                    p\.上边界\[i\] = top \+ 偏移;
+                                    p\.下边界\[i\] = bottom \+ 偏移;
+                                \}
+                                p\.有蛇 = 随机\.nextFloat\(\) < 0\.105f;
+                                // 有蛇的山峰中，20% 只作为环境生物观察玩家，不会发起袭击。
+                                p\.蛇不袭击 = p\.有蛇 && 随机\.nextFloat\(\) < 0\.20f;
+                                p\.蛇在上方 = 随机\.nextBoolean\(\);
+                                p\.蛇最大伸出 = Math\.min\(高 \* 0\.034f, 缺口高 \* 0\.15f\);
+                            \} else \{''',
+                  '''                  if (当前地图 == 危险山峰) {
+                                // 连续波峰仍会相互衔接，但减少过度重叠，并尽量维持相近的缺口高度。
+                                boolean 连峰 = 随机.nextFloat() < 0.34f;
+                                p.宽度 = 宽 * ((连峰 ? 0.35f : 0.30f)
+                                        + 随机.nextFloat() * (连峰 ? 0.075f : 0.070f));
+                                if (连峰) {
+                                    p.缺口高 = Math.max(p.缺口高, 高 * 0.205f);
+                                    连续同高剩余 = Math.max(连续同高剩余, 1);
+                                    p.到下一个间距 = Math.max(
+                                            p.宽度 * (0.84f + 随机.nextFloat() * 0.06f),
+                                            宽 * (0.34f + 随机.nextFloat() * 0.045f)
+                                    ) * (1f + 进度 * 0.035f);
+                                } else {
+                                    p.到下一个间距 = 宽 * (0.47f + 随机.nextFloat() * 0.095f)
+                                            * (1f + 进度 * 0.05f);
+                                }
+                                p.上边界 = new float[9];
+                                p.下边界 = new float[9];
+                                float top = 候选Y - p.缺口高 * 0.5f;
+                                float bottom = 候选Y + p.缺口高 * 0.5f;
+                                for (int i = 0; i < p.上边界.length; i++) {
+                                    float 波 = (float) Math.sin(i * 1.20f + (p.种子 & 255) * 0.017f)
+                                            * 高 * (0.016f + (i % 3) * 0.0035f);
+                                    float 细波 = 哈希01(p.种子, i * 19 + 7) * 高 * 0.015f - 高 * 0.0075f;
+                                    float 偏移 = 限制(波 + 细波, -高 * 0.024f, 高 * 0.024f);
+                                    p.上边界[i] = top + 偏移;
+                                    p.下边界[i] = bottom + 偏移;
+                                }
+                                p.有蛇 = 随机.nextFloat() < 0.105f;
+                                // 有蛇的山峰中，20% 只作为环境生物观察玩家，不会发起袭击。
+                                p.蛇不袭击 = p.有蛇 && 随机.nextFloat() < 0.20f;
+                                p.蛇在上方 = 随机.nextBoolean();
+                                p.蛇最大伸出 = Math.min(高 * 0.034f, p.缺口高 * 0.15f);
+                                // 蜘蛛不会和蛇叠在同一段山峰上，减少视觉与操作压力。
+                                p.有蜘蛛 = !p.有蛇 && 随机.nextFloat() < 0.085f;
+                                p.蜘蛛在上方 = 随机.nextBoolean();
+                                p.蜘蛛相位 = 随机.nextFloat() * 6.283f;
+                            } else {''',
+                  "优化山峰连续通道并生成蜘蛛",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  if (当前地图 == 新春) p.有鞭炮 = !p.紧邻组 && 随机.nextFloat() < 0.28f;''',
+                  '''                  if (当前地图 == 新春) {
+                                p.有鞭炮 = !p.紧邻组 && 随机.nextFloat() < 0.28f;
+                                p.有福字 = 随机.nextFloat() < 0.24f;
+                                p.福字在上方 = 随机.nextBoolean();
+                            }''',
+                  "为新春门柱加入福字",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  积分倍率 = (float) Math.pow(难度倍率, 1.18);''',
+                  '''                  积分倍率 = (float) Math.pow(难度倍率, 0.92);''',
+                  "放缓积分倍率成长",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                          int 本次分 = Math.round(25f * 积分倍率);''',
+                  '''                          int 本次分 = Math.round(20f * 积分倍率);''',
+                  "跨越障碍基础分改为20",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  护盾时间 = Math.max(0f, 护盾时间 - dt);
+                            花鸟保护时间 = Math.max(0f, 花鸟保护时间 - dt);''',
+                  '''                  护盾时间 = Math.max(0f, 护盾时间 - dt);
+                            花鸟保护时间 = Math.max(0f, 花鸟保护时间 - dt);
+                            中毒时间 = Math.max(0f, 中毒时间 - dt);
+                            if (中毒时间 <= 0f) {
+                                中毒跳跃倍率 = 1f;
+                                中毒类型 = 0;
+                            }''',
+                  "更新中毒倒计时",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                      if (当前地图 == 危险山峰 && p.有蛇) 更新山峰蛇(p, dt);
+                                if (当前地图 == 新春 && p.有鞭炮 && !p.鞭炮已放''',
+                  '''                      if (当前地图 == 危险山峰 && p.有蛇) 更新山峰蛇(p, dt);
+                                if (当前地图 == 危险山峰 && p.有蜘蛛) 更新山峰蜘蛛(p, dt);
+                                if (当前地图 == 新春 && p.有鞭炮 && !p.鞭炮已放''',
+                  "更新山峰蜘蛛",
+              )
+          
+              蜘蛛更新函数 = r'''
+                        private void 更新山峰蜘蛛(障碍 p, float dt) {
+                            if (p.蜘蛛已碰到 || 花鸟保护障碍免疫()) return;
+                            p.蜘蛛相位 += dt * (1.05f + 难度倍率 * 0.10f);
+                            float sx = 蜘蛛X(p);
+                            float sy = 蜘蛛Y(p);
+                            if (sx < -宽 * 0.08f || sx > 宽 * 1.08f) return;
+                            float sr = 宽 * 0.020f;
+                            if (距离平方(小鸟X, 小鸟Y, sx, sy)
+                                    < 平方(当前小鸟半径() + sr)) {
+                                p.蜘蛛已碰到 = true;
+                                中毒时间 = 3f;
+                                if (随机.nextBoolean()) {
+                                    中毒类型 = 1;
+                                    中毒跳跃倍率 = 1.30f;
+                                    生成浮字(小鸟X, 小鸟Y - 高 * 0.065f,
+                                            "蛛毒：跳跃提高30% · 3秒", 0xFFB7F06B);
+                                } else {
+                                    中毒类型 = 2;
+                                    中毒跳跃倍率 = 0.60f;
+                                    生成浮字(小鸟X, 小鸟Y - 高 * 0.065f,
+                                            "蛛毒：跳跃降低40% · 3秒", 0xFF9BD85B);
+                                }
+                                受伤冷却 = Math.max(受伤冷却, 0.30f);
+                                受伤暖闪 = Math.max(受伤暖闪, 0.48f);
+                                画面震动 = Math.max(画面震动, 0.26f);
+                                生成爆裂(sx, sy, 0xFF79C94D, 18);
+                                播放音效(ToneGenerator.TONE_PROP_NACK, 72);
+                            }
+                        }
+          
+          '''
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private void 更新猎手(float dt) {''',
+                  蜘蛛更新函数 + '''              private void 更新猎手(float dt) {''',
+                  "插入蜘蛛中毒逻辑",
+              )
+          
+              新游龙更新 = r'''              private void 更新龙(float dt) {
+                            if (花鸟保护障碍免疫()) return;
+                            if (龙状态 == 0) {
+                                龙冷却 -= dt;
+                                if (龙冷却 > 0f || 冲刺时间 > 0f) return;
+          
+                                龙方向 = 随机.nextBoolean() ? -1 : 1;
+                                龙X = 龙方向 < 0 ? 宽 * 1.24f : -宽 * 0.24f;
+                                龙Y = 高 * (0.12f + 随机.nextFloat() * 0.19f);
+                                龙目标Y = 限制(龙Y + (随机.nextFloat() - 0.5f) * 高 * 0.085f,
+                                        高 * 0.10f, 高 * 0.37f);
+                                龙速度Y = (龙目标Y - 龙Y) / (4.2f + 随机.nextFloat() * 2.0f);
+                                龙背景计时 = 0f;
+                                龙背景攻击等待 = 1.25f + 随机.nextFloat() * 1.55f;
+                                // 大多数时候只是远景游龙，只有约四分之一会转为真正攻击。
+                                龙背景后攻击 = 随机.nextFloat() < 0.24f;
+                                龙碰到 = false;
+                                龙状态 = 1;
+                            } else if (龙状态 == 1) {
+                                龙背景计时 += dt;
+                                float speedX = 宽 * (0.105f + 难度倍率 * 0.010f) * 龙方向;
+                                龙X += speedX * dt;
+                                龙Y += 龙速度Y * dt
+                                        + (float) Math.sin(动画时间 * 1.25f + 龙背景计时)
+                                        * 高 * 0.0022f;
+          
+                                if (龙背景后攻击 && 龙背景计时 >= 龙背景攻击等待
+                                        && 冲刺时间 <= 0f) {
+                                    障碍 威胁 = 寻找前方障碍(宽 * 0.28f, 宽 * 0.92f);
+                                    if (威胁 != null && !威胁.紧邻组) {
+                                        float side = 小鸟Y < 威胁.缺口Y ? -1f : 1f;
+                                        龙目标Y = 威胁.缺口Y + side * 威胁.缺口高 * 0.20f;
+                                        龙目标Y = 限制(龙目标Y,
+                                                威胁.缺口Y - 威胁.缺口高 * 0.30f,
+                                                威胁.缺口Y + 威胁.缺口高 * 0.30f);
+                                        龙X = 龙方向 < 0
+                                                ? Math.max(龙X, 宽 * 1.08f)
+                                                : Math.min(龙X, -宽 * 0.38f);
+                                        float attackSpeed = 宽 * (0.90f + 难度倍率 * 0.050f);
+                                        float horizontal = 龙方向 < 0
+                                                ? 龙X - 小鸟X : 小鸟X - 龙X;
+                                        float remain = Math.max(0.48f, horizontal / attackSpeed);
+                                        龙速度Y = (龙目标Y - 龙Y) / remain;
+                                        龙碰到 = false;
+                                        龙状态 = 2;
+                                        播放音效(ToneGenerator.TONE_PROP_NACK, 58);
+                                        return;
+                                    }
+                                    龙背景后攻击 = false;
+                                }
+          
+                                boolean 离开屏幕 = 龙方向 < 0
+                                        ? 龙X < -宽 * 0.32f : 龙X > 宽 * 1.32f;
+                                if (离开屏幕) {
+                                    龙状态 = 0;
+                                    龙冷却 = 7.5f + 随机.nextFloat() * 7.5f;
+                                }
+                            } else {
+                                float speedX = 宽 * (0.90f + 难度倍率 * 0.050f) * 龙方向;
+                                龙X += speedX * dt;
+                                float horizontal = 龙方向 < 0
+                                        ? 龙X - 小鸟X : 小鸟X - 龙X;
+                                if (horizontal > 宽 * 0.14f) {
+                                    float remain = Math.max(0.20f, horizontal / Math.abs(speedX));
+                                    float desired = (龙目标Y - 龙Y) / remain;
+                                    龙速度Y += 限制(desired - 龙速度Y,
+                                            -高 * 0.54f * dt, 高 * 0.54f * dt);
+                                }
+                                龙Y = 限制(龙Y + 龙速度Y * dt,
+                                        高 * 0.07f, 地面线 - 高 * 0.07f);
+                                float r = 宽 * 0.057f;
+                                if (!龙碰到 && 距离平方(小鸟X, 小鸟Y, 龙X, 龙Y)
+                                        < 平方(当前小鸟半径() + r * 0.72f)) {
+                                    龙碰到 = true;
+                                    承受撞击("游龙冲撞");
+                                }
+          
+                                boolean 离开屏幕 = 龙方向 < 0
+                                        ? 龙X < -宽 * 0.34f : 龙X > 宽 * 1.34f;
+                                if (离开屏幕) {
+                                    if (!龙碰到) {
+                                        int dodge = Math.round(12f * 积分倍率);
+                                        奖励分 += dodge;
+                                        生成浮字(小鸟X, 小鸟Y - 高 * 0.055f,
+                                                "躲过游龙 +" + dodge, 0xFFFFD26A);
+                                    }
+                                    龙状态 = 0;
+                                    龙冷却 = 15f + 随机.nextFloat() * 11f;
+                                }
+                            }
+                        }
+          
+          '''
+          
+              文本 = 正则替换一次(
+                  文本,
+                  r'''              private void 更新龙\(float dt\) \{.*?
+                        \}
+          
+                        private void 更新特殊流星''',
+                  新游龙更新 + '''              private void 更新特殊流星''',
+                  "替换为双向巡游游龙逻辑",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  // 冻结果实期间额外准确降低 30% 跳跃高度对应的起跳力度。
+                            if (冻结时间 > 0f) 小鸟速度Y *= 0.70f;
+                            拍翅淡化 = 1f;''',
+                  '''                  // 冻结果实期间额外准确降低 30% 跳跃高度对应的起跳力度。
+                            if (冻结时间 > 0f) 小鸟速度Y *= 0.70f;
+                            if (中毒时间 > 0f) 小鸟速度Y *= 中毒跳跃倍率;
+                            拍翅淡化 = 1f;''',
+                  "让蛛毒改变跳跃高度",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  // 紫蓝色银河浪，与夜空和山谷自然融合，不再出现突兀的黄色长线。
+                            路径.reset();
+                            路径.moveTo(宽 * 0.42f, 地面线);
+                            路径.cubicTo(宽 * 0.68f, 高 * 0.80f,
+                                    宽 * 0.26f, 高 * 0.76f,
+                                    宽 * 0.54f, 高 * 0.69f);
+                            路径.cubicTo(宽 * 0.68f, 高 * 0.65f,
+                                    宽 * 0.57f, 高 * 0.61f,
+                                    宽 * 0.63f, 高 * 0.57f);
+                            配置描边(0x556E62D8, 宽 * 0.034f);
+                            c.drawPath(路径, 描边);
+                            配置描边(0xAA8C86F2, 宽 * 0.017f);
+                            c.drawPath(路径, 描边);
+                            配置描边(0xBBAEC8FF, 宽 * 0.0055f);
+                            c.drawPath(路径, 描边);''',
+                  '''                  // 银河像一条宽阔的星河穿过山谷，色彩压低并融入紫蓝背景。
+                            路径.reset();
+                            路径.moveTo(宽 * 0.34f, 地面线 + 高 * 0.012f);
+                            路径.cubicTo(宽 * 0.72f, 高 * 0.82f,
+                                    宽 * 0.20f, 高 * 0.76f,
+                                    宽 * 0.53f, 高 * 0.685f);
+                            路径.cubicTo(宽 * 0.72f, 高 * 0.63f,
+                                    宽 * 0.53f, 高 * 0.60f,
+                                    宽 * 0.66f, 高 * 0.535f);
+                            配置描边(0x28524FA0, 宽 * 0.082f);
+                            c.drawPath(路径, 描边);
+                            配置描边(0x3B6864B9, 宽 * 0.049f);
+                            c.drawPath(路径, 描边);
+                            配置描边(0x527F8CCB, 宽 * 0.021f);
+                            c.drawPath(路径, 描边);
+                            配置描边(0x669DB0DE, 宽 * 0.0060f);
+                            c.drawPath(路径, 描边);''',
+                  "加宽并淡化银河河流",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  if (p.有鞭炮) 绘制鞭炮串(c, p, top);
+                        }
+          
+                        private void 绘制鞭炮串''',
+                  '''                  if (p.有福字) 绘制福字(c, p, top, bottom);
+                            if (p.有鞭炮) 绘制鞭炮串(c, p, top);
+                        }
+          
+                        private void 绘制福字(Canvas c, 障碍 p, float top, float bottom) {
+                            float x = p.x + p.宽度 * 0.50f;
+                            float y;
+                            if (p.福字在上方 && top > 高 * 0.16f) {
+                                y = 限制(top * 0.54f, 高 * 0.10f, top - 高 * 0.055f);
+                            } else {
+                                y = 限制(bottom + (地面线 - bottom) * 0.30f,
+                                        bottom + 高 * 0.055f, 地面线 - 高 * 0.065f);
+                            }
+                            float s = Math.min(p.宽度 * 0.34f, 高 * 0.030f);
+                            路径.reset();
+                            路径.moveTo(x, y - s);
+                            路径.lineTo(x + s, y);
+                            路径.lineTo(x, y + s);
+                            路径.lineTo(x - s, y);
+                            路径.close();
+                            纯色(0xFFE52F2F);
+                            c.drawPath(路径, 画笔);
+                            配置描边(0xFFFFD26E, 宽 * 0.0022f);
+                            c.drawPath(路径, 描边);
+                            文本(c, "福", x, y + s * 0.38f, s * 1.18f,
+                                    0xFFFFD978, Paint.Align.CENTER, true);
+                        }
+          
+                        private void 绘制鞭炮串''',
+                  "绘制红纸福字",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  if (p.有蛇) 绘制山峰蛇(c, p);
+                        }
+          
+                        private void 构建平滑边界路径''',
+                  '''                  if (p.有蛇) 绘制山峰蛇(c, p);
+                            if (p.有蜘蛛 && !p.蜘蛛已碰到) 绘制山峰蜘蛛(c, p);
+                        }
+          
+                        private void 构建平滑边界路径''',
+                  "在山峰上绘制蜘蛛",
+              )
+          
+              蜘蛛绘制函数 = r'''
+                        private void 绘制山峰蜘蛛(Canvas c, 障碍 p) {
+                            float x = 蜘蛛X(p);
+                            float y = 蜘蛛Y(p);
+                            float r = 宽 * 0.018f;
+                            float dir = p.蜘蛛在上方 ? 1f : -1f;
+                            c.save();
+                            c.rotate((float) Math.sin(p.蜘蛛相位 * 0.7f) * 8f, x, y);
+                            配置描边(0xFF21171F, r * 0.16f);
+                            for (int i = 0; i < 4; i++) {
+                                float side = i < 2 ? -1f : 1f;
+                                float row = i % 2;
+                                float hipX = x + side * r * (0.30f + row * 0.18f);
+                                float hipY = y + dir * r * (0.05f + row * 0.24f);
+                                float kneeX = x + side * r * (1.00f + row * 0.16f);
+                                float kneeY = y - dir * r * (0.44f - row * 0.10f);
+                                float footX = x + side * r * (1.48f + row * 0.18f);
+                                float footY = y + dir * r * (0.56f + row * 0.28f);
+                                c.drawLine(hipX, hipY, kneeX, kneeY, 描边);
+                                c.drawLine(kneeX, kneeY, footX, footY, 描边);
+                            }
+                            设置径向渐变(x - r * 0.28f, y - r * 0.30f, r * 1.45f,
+                                    0xFF55404D, 0xFF17131A);
+                            c.drawCircle(x, y, r * 0.82f, 画笔);
+                            清除着色器();
+                            纯色(0xFF2A2029);
+                            c.drawCircle(x, y - dir * r * 0.74f, r * 0.52f, 画笔);
+                            纯色(0xFFD64242);
+                            路径.reset();
+                            路径.moveTo(x, y + dir * r * 0.15f);
+                            路径.lineTo(x + r * 0.24f, y + dir * r * 0.48f);
+                            路径.lineTo(x, y + dir * r * 0.70f);
+                            路径.lineTo(x - r * 0.24f, y + dir * r * 0.48f);
+                            路径.close();
+                            c.drawPath(路径, 画笔);
+                            纯色(0xFFFFD96A);
+                            c.drawCircle(x - r * 0.18f, y - dir * r * 0.82f, r * 0.08f, 画笔);
+                            c.drawCircle(x + r * 0.18f, y - dir * r * 0.82f, r * 0.08f, 画笔);
+                            c.restore();
+                        }
+          
+          '''
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private void 绘制冰柱(Canvas c, 障碍 p, float top, float bottom) {''',
+                  蜘蛛绘制函数 + '''              private void 绘制冰柱(Canvas c, 障碍 p, float top, float bottom) {''',
+                  "插入蜘蛛造型",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private void 绘制游戏场景(Canvas c) {
+                            for (障碍 p : 障碍组) 绘制障碍(c, p);''',
+                  '''              private void 绘制游戏场景(Canvas c) {
+                            if (当前地图 == 新春 && 龙状态 == 1) 绘制龙(c);
+                            for (障碍 p : 障碍组) 绘制障碍(c, p);''',
+                  "把巡游龙放到背景层",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  if (当前地图 == 黑暗丛林) 绘制猎手(c);
+                            if (当前地图 == 新春) 绘制龙(c);
+                            if (当前地图 == 星河宇宙) 绘制特殊流星(c);''',
+                  '''                  if (当前地图 == 黑暗丛林) 绘制猎手(c);
+                            if (当前地图 == 新春 && 龙状态 == 2) 绘制龙(c);
+                            if (当前地图 == 星河宇宙) 绘制特殊流星(c);''',
+                  "把攻击龙放到前景层",
+              )
+          
+              新游龙绘制 = r'''              private void 绘制龙(Canvas c) {
+                            if (龙状态 == 0) return;
+                            boolean 背景龙 = 龙状态 == 1;
+                            float r = 宽 * (背景龙 ? 0.040f : 0.056f);
+                            float speedX = (背景龙
+                                    ? 宽 * (0.105f + 难度倍率 * 0.010f)
+                                    : 宽 * (0.90f + 难度倍率 * 0.050f)) * 龙方向;
+                            int layer = c.saveLayerAlpha(0, 0, 宽, 高, 背景龙 ? 118 : 255);
+                            c.translate(龙X, 龙Y);
+                            c.rotate((float) Math.toDegrees(Math.atan2(龙速度Y, speedX)));
+          
+                            路径.reset();
+                            路径.moveTo(-r * 0.16f, 0);
+                            路径.cubicTo(-r * 1.05f, -r * 0.62f,
+                                    -r * 1.82f, r * 0.72f,
+                                    -r * 2.72f, -r * 0.02f);
+                            路径.cubicTo(-r * 3.25f, -r * 0.48f,
+                                    -r * 3.78f, r * 0.42f,
+                                    -r * 4.40f, r * 0.02f);
+                            配置描边(背景龙 ? 0xFF4B244F : 0xFF681523, r * 0.58f);
+                            c.drawPath(路径, 描边);
+                            配置描边(背景龙 ? 0xFF86507D : 0xFFE44638, r * 0.38f);
+                            c.drawPath(路径, 描边);
+                            配置描边(背景龙 ? 0xFFB17A9B : 0xFFFFA34F, r * 0.105f);
+                            c.drawPath(路径, 描边);
+          
+                            for (int i = 1; i <= 8; i++) {
+                                float sx = -r * (0.40f + i * 0.45f);
+                                float sy = (float) Math.sin(i * 1.22f + 动画时间 * 2.8f) * r * 0.30f;
+                                纯色(i % 2 == 0
+                                        ? (背景龙 ? 0xFFB7819F : 0xFFFFC15C)
+                                        : (背景龙 ? 0xFF9B6387 : 0xFFFF7D47));
+                                c.drawCircle(sx, sy, r * 0.115f, 画笔);
+                                路径.reset();
+                                路径.moveTo(sx, sy - r * 0.22f);
+                                路径.lineTo(sx - r * 0.16f, sy - r * 0.58f);
+                                路径.lineTo(sx + r * 0.16f, sy - r * 0.26f);
+                                路径.close();
+                                c.drawPath(路径, 画笔);
+                            }
+                            纯色(背景龙 ? 0xFF9A668B : 0xFFFFC45F);
+                            路径.reset();
+                            路径.moveTo(-r * 4.18f, -r * 0.05f);
+                            路径.lineTo(-r * 4.88f, -r * 0.52f);
+                            路径.lineTo(-r * 4.62f, 0);
+                            路径.lineTo(-r * 4.90f, r * 0.48f);
+                            路径.close();
+                            c.drawPath(路径, 画笔);
+          
+                            配置描边(背景龙 ? 0xFFB58AA7 : 0xFFFFC45F, r * 0.105f);
+                            for (int i = 0; i < 2; i++) {
+                                float lx = -r * (1.05f + i * 1.45f);
+                                float ly = i == 0 ? r * 0.22f : -r * 0.08f;
+                                c.drawLine(lx, ly, lx + r * 0.18f, ly + r * 0.62f, 描边);
+                                c.drawLine(lx + r * 0.18f, ly + r * 0.62f,
+                                        lx + r * 0.56f, ly + r * 0.78f, 描边);
+                                for (int claw = 0; claw < 3; claw++) {
+                                    float cx = lx + r * (0.46f + claw * 0.12f);
+                                    c.drawLine(cx, ly + r * 0.72f,
+                                            cx + r * 0.13f, ly + r * (0.94f + claw * 0.04f), 描边);
+                                }
+                            }
+          
+                            设置径向渐变(r * 0.10f, -r * 0.16f, r * 1.45f,
+                                    背景龙 ? 0xFFB66E8C : 0xFFFF6546,
+                                    背景龙 ? 0xFF5E2A56 : 0xFF901A29);
+                            c.drawOval(-r * 0.55f, -r * 0.66f,
+                                    r * 1.18f, r * 0.66f, 画笔);
+                            清除着色器();
+                            配置描边(背景龙 ? 0xFF4A2349 : 0xFF5C1320, r * 0.10f);
+                            c.drawOval(-r * 0.55f, -r * 0.66f,
+                                    r * 1.18f, r * 0.66f, 描边);
+          
+                            纯色(背景龙 ? 0xFFCE9AB3 : 0xFFFFC961);
+                            for (int i = 0; i < 4; i++) {
+                                float mx = -r * 0.38f + i * r * 0.32f;
+                                路径.reset();
+                                路径.moveTo(mx, -r * 0.50f);
+                                路径.lineTo(mx - r * 0.18f, -r * (0.92f + (i % 2) * 0.16f));
+                                路径.lineTo(mx + r * 0.18f, -r * 0.60f);
+                                路径.close();
+                                c.drawPath(路径, 画笔);
+                            }
+          
+                            配置描边(背景龙 ? 0xFFCFB5C2 : 0xFFFFDA82, r * 0.105f);
+                            for (int side = -1; side <= 1; side += 2) {
+                                float hx = r * (side < 0 ? -0.12f : 0.47f);
+                                c.drawLine(hx, -r * 0.56f, hx + side * r * 0.12f, -r * 1.18f, 描边);
+                                c.drawLine(hx + side * r * 0.08f, -r * 0.91f,
+                                        hx + side * r * 0.38f, -r * 1.16f, 描边);
+                                c.drawLine(hx + side * r * 0.10f, -r * 1.05f,
+                                        hx - side * r * 0.12f, -r * 1.34f, 描边);
+                            }
+          
+                            纯色(0xFFFFF8E7);
+                            c.drawOval(r * 0.35f, -r * 0.40f,
+                                    r * 0.70f, -r * 0.09f, 画笔);
+                            纯色(背景龙 ? 0xFF421D42 : 0xFF1D1720);
+                            c.drawOval(r * 0.50f, -r * 0.36f,
+                                    r * 0.60f, -r * 0.12f, 画笔);
+                            纯色(背景龙 ? 0xFF5D294F : 0xFF641824);
+                            c.drawCircle(r * 0.93f, r * 0.10f, r * 0.075f, 画笔);
+                            c.drawCircle(r * 0.78f, r * 0.15f, r * 0.052f, 画笔);
+                            纯色(0xFFFFF4D5);
+                            路径.reset();
+                            路径.moveTo(r * 0.68f, r * 0.42f);
+                            路径.lineTo(r * 0.82f, r * 0.73f);
+                            路径.lineTo(r * 0.93f, r * 0.39f);
+                            路径.close();
+                            c.drawPath(路径, 画笔);
+          
+                            配置描边(背景龙 ? 0xFFCBA7B9 : 0xFFFFD56C, r * 0.075f);
+                            路径.reset();
+                            路径.moveTo(r * 0.72f, -r * 0.43f);
+                            路径.cubicTo(r * 1.10f, -r * 0.88f,
+                                    r * 1.62f, -r * 0.42f,
+                                    r * 1.50f, -r * 0.02f);
+                            c.drawPath(路径, 描边);
+                            for (int side = -1; side <= 1; side += 2) {
+                                路径.reset();
+                                路径.moveTo(r * 0.88f, r * (0.02f + side * 0.08f));
+                                路径.cubicTo(r * 1.65f, r * side * 0.32f,
+                                        r * 2.08f, r * side * 0.62f,
+                                        r * 2.52f, r * side * 0.26f);
+                                c.drawPath(路径, 描边);
+                            }
+          
+                            c.restoreToCount(layer);
+                        }
+          
+          '''
+          
+              文本 = 正则替换一次(
+                  文本,
+                  r'''              private void 绘制龙\(Canvas c\) \{.*?
+                        \}
+          
+                        private void 绘制特殊流星''',
+                  新游龙绘制 + '''              private void 绘制特殊流星''',
+                  "替换为精细游龙造型",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  float fade = 菜单鸟 ? 0f : 0.075f * 拍翅淡化;
+                            bodyLight = 混色(bodyLight, Color.WHITE, fade);
+                            bodyDark = 混色(bodyDark, Color.WHITE, fade);
+                            wingColor = 混色(wingColor, Color.WHITE, fade * 0.75f);''',
+                  '''                  float fade = 菜单鸟 ? 0f : 0.075f * 拍翅淡化;
+                            bodyLight = 混色(bodyLight, Color.WHITE, fade);
+                            bodyDark = 混色(bodyDark, Color.WHITE, fade);
+                            wingColor = 混色(wingColor, Color.WHITE, fade * 0.75f);
+                            boolean 玩家受毒 = !菜单鸟 && 中毒时间 > 0f
+                                    && Math.abs(x - 小鸟X) < 当前小鸟半径() * 0.9f
+                                    && Math.abs(y - 小鸟Y) < 当前小鸟半径() * 0.9f;
+                            if (玩家受毒) {
+                                float poisonPulse = 0.48f + 0.12f
+                                        * (float) Math.sin(动画时间 * 8f);
+                                bodyLight = 混色(bodyLight, 0xFFA9E66B, poisonPulse);
+                                bodyDark = 混色(bodyDark, 0xFF3F7E3C, poisonPulse);
+                                wingColor = 混色(wingColor, 0xFF78B84E, poisonPulse);
+                            }''',
+                  "中毒时改变小鸟颜色",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  if (护盾可挡 && 护盾时间 > 0f) effectX = 绘制效果徽章(c, effectX, effectY,
+                                    "护盾 " + 一位小数(护盾时间), 0xDD168963);
+                            if (花鸟接管中 && 花鸟保护时间 > 0f) {''',
+                  '''                  if (护盾可挡 && 护盾时间 > 0f) effectX = 绘制效果徽章(c, effectX, effectY,
+                                    "护盾 " + 一位小数(护盾时间), 0xDD168963);
+                            if (中毒时间 > 0f) {
+                                String poisonText = 中毒类型 == 1 ? "蛛毒 跳跃+30% " : "蛛毒 跳跃-40% ";
+                                effectX = 绘制效果徽章(c, effectX, effectY,
+                                        poisonText + 一位小数(中毒时间), 0xDD56883E);
+                            }
+                            if (花鸟接管中 && 花鸟保护时间 > 0f) {''',
+                  "显示蛛毒状态",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  绘制皇冠图标(c, 成就按钮);
+          
+                            纯色(0x45FFFFFF);
+                            c.drawOval(问号按钮, 画笔);''',
+                  '''                  绘制皇冠图标(c, 成就按钮);
+          
+                            纯色(0x45FFFFFF);
+                            c.drawOval(音效按钮, 画笔);
+                            配置描边(0x99FFFFFF, 宽 * 0.003f);
+                            c.drawOval(音效按钮, 描边);
+                            绘制喇叭图标(c, 音效按钮);
+          
+                            纯色(0x45FFFFFF);
+                            c.drawOval(问号按钮, 画笔);''',
+                  "绘制音效按钮",
+              )
+          
+              喇叭函数 = r'''
+                        private void 绘制喇叭图标(Canvas c, RectF r) {
+                            float cx = r.centerX();
+                            float cy = r.centerY();
+                            float s = Math.min(r.width(), r.height());
+                            纯色(Color.WHITE);
+                            c.drawRoundRect(cx - s * 0.25f, cy - s * 0.14f,
+                                    cx - s * 0.08f, cy + s * 0.14f,
+                                    s * 0.035f, s * 0.035f, 画笔);
+                            路径.reset();
+                            路径.moveTo(cx - s * 0.08f, cy - s * 0.14f);
+                            路径.lineTo(cx + s * 0.12f, cy - s * 0.30f);
+                            路径.lineTo(cx + s * 0.12f, cy + s * 0.30f);
+                            路径.lineTo(cx - s * 0.08f, cy + s * 0.14f);
+                            路径.close();
+                            c.drawPath(路径, 画笔);
+                            if (音效开启) {
+                                配置描边(Color.WHITE, s * 0.055f);
+                                路径.reset();
+                                路径.moveTo(cx + s * 0.19f, cy - s * 0.17f);
+                                路径.quadTo(cx + s * 0.34f, cy, cx + s * 0.19f, cy + s * 0.17f);
+                                c.drawPath(路径, 描边);
+                                路径.reset();
+                                路径.moveTo(cx + s * 0.27f, cy - s * 0.29f);
+                                路径.quadTo(cx + s * 0.52f, cy, cx + s * 0.27f, cy + s * 0.29f);
+                                c.drawPath(路径, 描边);
+                            } else {
+                                配置描边(0xFFFF8E83, s * 0.075f);
+                                c.drawLine(cx - s * 0.31f, cy - s * 0.31f,
+                                        cx + s * 0.36f, cy + s * 0.31f, 描边);
+                            }
+                        }
+          
+          '''
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private void 绘制成就面板(Canvas c) {''',
+                  喇叭函数 + '''              private void 绘制成就面板(Canvas c) {''',
+                  "插入喇叭图标函数",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                      if (问号按钮.contains(x, y)) {
+                                    显示游戏说明 = true;''',
+                  '''                      if (音效按钮.contains(x, y)) {
+                                    切换音效();
+                                    return true;
+                                }
+                                if (问号按钮.contains(x, y)) {
+                                    显示游戏说明 = true;''',
+                  "响应音效按钮",
+              )
+          
+              音效方法 = r'''
+                        private void 切换音效() {
+                            音效开启 = !音效开启;
+                            存档.edit().putBoolean("音效开启", 音效开启).apply();
+                            if (音效开启) {
+                                播放音效(ToneGenerator.TONE_PROP_ACK, 65);
+                                提示文字 = "音效开";
+                            } else {
+                                try { 音效.stopTone(); } catch (Exception ignored) { }
+                                声音系统.暂停全部();
+                                提示文字 = "音效关";
+                            }
+                            提示时间 = 2.0f;
+                        }
+          
+                        private void 播放音效(int tone, int durationMs) {
+                            if (!音效开启) return;
+                            try {
+                                音效.startTone(tone, durationMs);
+                            } catch (Exception ignored) { }
+                        }
+          
+          '''
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private void 切换皮肤(int direction) {''',
+                  音效方法 + '''              private void 切换皮肤(int direction) {''',
+                  "插入全局音效开关方法",
+              )
+          
+              提示音数量 = 文本.count("音效.startTone(")
+              if 提示音数量 < 10:
+                  raise RuntimeError(f"预计至少有 10 处提示音，实际只找到 {提示音数量} 处。")
+              文本 = 文本.replace("音效.startTone(", "播放音效(")
+              文本 = 替换一次(
+                  文本,
+                  '''                      播放音效(tone, durationMs);''',
+                  '''                      音效.startTone(tone, durationMs);''',
+                  "恢复音效包装方法内部调用",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                      float 音乐目标 = 正在游玩 && map == 经典管道 ? 0.20f : 0f;''',
+                  '''                      float 音乐目标 = 音效开启 && 正在游玩 && map == 经典管道 ? 0.20f : 0f;''',
+                  "背景音乐服从开关",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                      float 雨声目标 = 正在游玩 && map == 黑暗丛林
+                                        ? 0.16f * 限制(rainAmount, 0f, 1f) : 0f;''',
+                  '''                      float 雨声目标 = 音效开启 && 正在游玩 && map == 黑暗丛林
+                                        ? 0.16f * 限制(rainAmount, 0f, 1f) : 0f;''',
+                  "雨声服从开关",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  void 播放雷声() {
+                                if (已释放) return;''',
+                  '''                  void 播放雷声() {
+                                if (已释放 || !音效开启) return;''',
+                  "雷声服从开关",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  int[] 色 = {0xF04FAFD0, 0xF0493A45, 0xF05A9FC1, 0xF0103B31,
+                                    0xF081B36D, 0xF08B2336, 0xF02D357D};
+                            int[] 底色 = {0xF07DD16A, 0xF01B2936, 0xF0D6F6FF, 0xF007201C,
+                                    0xF0F3B0C9, 0xF0261022, 0xF0673F91};''',
+                  '''                  int[] 色 = {0xF04FAFD0, 0xF06E7780, 0xF05A9FC1, 0xF0103B31,
+                                    0xF081B36D, 0xF08B2336, 0xF02D357D};
+                            int[] 底色 = {0xF07DD16A, 0xF03D4E5A, 0xF0D6F6FF, 0xF007201C,
+                                    0xF0F3B0C9, 0xF0261022, 0xF0673F91};''',
+                  "调亮危险山峰卡片",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                      case 危险山峰: return "连续波峰 · 慢速昼夜 · 缠峰绿蛇";''',
+                  '''                      case 危险山峰: return "连续波峰 · 缠峰绿蛇 · 中毒蜘蛛";''',
+                  "更新山峰地图说明",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                      case 新春: return "灯火楼宇 · 三色烟花 · 游龙与新春彩蛋";''',
+                  '''                      case 新春: return "灯火楼宇 · 福字烟花 · 双向巡游游龙";''',
+                  "更新新春地图说明",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  String[] subs = {"清新 · 经典", "波峰 · 绿蛇", "冰雹 · 极光", "猎手 · 细雨",
+                                    "四季 · 花鸟", "烟花 · 游龙", "星空 · 流星"};''',
+                  '''                  String[] subs = {"清新 · 经典", "绿蛇 · 蜘蛛", "冰雹 · 极光", "猎手 · 细雨",
+                                    "四季 · 花鸟", "烟花 · 双向龙", "星空 · 流星"};''',
+                  "更新地图卡副标题",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  y = 绘制说明行(c, y, "山峰", "连续起伏的波峰通道、昼夜和会扑咬的绿蛇。", 0xFFC9D1D6);''',
+                  '''                  y = 绘制说明行(c, y, "山峰", "波峰通道、绿蛇和会造成三秒跳跃变化的蜘蛛。", 0xFFC9D1D6);''',
+                  "更新帮助中的蜘蛛说明",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  y = 绘制说明行(c, y, "新春", "灯火楼宇、鞭炮装饰、三类烟花和无预警游龙。", 0xFFFFD27B);''',
+                  '''                  y = 绘制说明行(c, y, "新春", "灯火楼宇、福字、三类烟花和低频双向游龙。", 0xFFFFD27B);''',
+                  "更新帮助中的游龙说明",
+              )
+          
+              文本 = 正则替换一次(
+                  文本,
+                  r'''              private float 背景速度倍率\(\) \{
+                            if \(状态 != 游戏中\) return 1f;
+                            float base = 0\.92f \+ 0\.28f \* Math\.max\(0f, 难度倍率 - 1f\);
+                            if \(冻结时间 > 0f\) base \*= 0\.72f;
+                            if \(冲刺时间 > 0f\) base \*= 1\.80f;
+                            if \(花鸟接管中 && 花鸟保护时间 > 0f\) base \*= 0\.55f;
+                            return 限制\(base, 0\.60f, 2\.25f\);
+                        \}''',
+                  '''              private float 背景速度倍率() {
+                            if (状态 != 游戏中) return 1f;
+                            // 难度和实际游玩时间共同推动背景加速，视觉速度与障碍速度保持一致。
+                            float 时间提升 = 1f + 0.34f
+                                    * (1f - (float) Math.exp(-经过秒数 / 150f));
+                            float 难度提升 = 0.92f + 0.18f * Math.max(0f, 难度倍率 - 1f);
+                            float base = 时间提升 * 难度提升;
+                            if (冻结时间 > 0f) base *= 0.72f;
+                            if (冲刺时间 > 0f) base *= 1.80f;
+                            if (花鸟接管中 && 花鸟保护时间 > 0f) base *= 0.55f;
+                            return 限制(base, 0.60f, 2.25f);
+                        }''',
+                  "让背景随时间逐步加速",
+              )
+          
+              蜘蛛辅助函数 = r'''
+                        private float 蜘蛛X(障碍 p) {
+                            float crawl = 0.5f + 0.5f * (float) Math.sin(p.蜘蛛相位);
+                            return p.x + p.宽度 * (0.18f + crawl * 0.64f);
+                        }
+          
+                        private float 蜘蛛Y(障碍 p) {
+                            float x = 蜘蛛X(p);
+                            float edge = 波浪边界(p, x, p.蜘蛛在上方);
+                            return edge + (p.蜘蛛在上方 ? 1f : -1f) * 宽 * 0.012f;
+                        }
+          
+          '''
+          
+              文本 = 替换一次(
+                  文本,
+                  '''              private float 蛇头X(障碍 p) {''',
+                  蜘蛛辅助函数 + '''              private float 蛇头X(障碍 p) {''',
+                  "插入蜘蛛位置函数",
+              )
+          
+              文本 = 替换一次(
+                  文本,
+                  '''                  boolean 有鞭炮;
+                            boolean 鞭炮已放;''',
+                  '''                  boolean 有鞭炮;
+                            boolean 鞭炮已放;
+                            boolean 有福字;
+                            boolean 福字在上方;
+                            boolean 有蜘蛛;
+                            boolean 蜘蛛在上方;
+                            boolean 蜘蛛已碰到;
+                            float 蜘蛛相位;''',
+                  "扩展障碍数据",
+              )
+          
+              return 文本
+          
+          
+          def main() -> int:
+              if len(sys.argv) != 2:
+                  print("用法：python apply_final_improvements.py main.yml")
+                  return 2
+          
+              输入 = Path(sys.argv[1])
+              if not 输入.is_file():
+                  print(f"找不到文件：{输入}")
+                  return 2
+          
+              try:
+                  原文 = 输入.read_text(encoding="utf-8")
+                  新文 = 应用修改(原文)
+              except Exception as 错误:
+                  print(f"修改失败：{错误}")
+                  return 1
+          
+              输出 = 输入.with_name("main_最终版.yml")
+              输出.write_text(新文, encoding="utf-8", newline="\n")
+              print(f"修改完成：{输出}")
+              print("请把生成的 main_最终版.yml 上传到 .github/workflows/，并改名为 main.yml。")
+              return 0
+          
+          
+          if __name__ == "__main__":
+              raise SystemExit(main())
+          PATCHPY
+
+          python3 /tmp/应用最终改进.py /tmp/小鸟小鸟_基础构建.yml
+
+          python3 - <<'FINALIZEPY'
+          from pathlib import Path
+
+          文件 = Path("/tmp/main_最终版.yml")
+          文本 = 文件.read_text(encoding="utf-8")
+
+          # 最后补上本轮新增的界面文字修改。
+          修改项 = [
+              (
+                  'case 经典管道: return "清新原野 · 稀有昼夜 · 舒缓音乐";',
+                  'case 经典管道: return "清新原野 · 致敬经典 · 舒缓音乐";',
+                  "经典地图说明改为致敬经典",
+              ),
+              (
+                  '"清新管道、稀有昼夜与舒缓背景音乐。"',
+                  '"清新管道、致敬经典与舒缓背景音乐。"',
+                  "游戏介绍中的经典地图说明",
+              ),
+              (
+                  '"本图最高 " + 读取最高分(当前地图)',
+                  '"本图最高分 " + 读取最高分(当前地图)',
+                  "游戏内最高分文字",
+              ),
+              (
+                  '"最高 " + 读取最高分(当前地图)',
+                  '"最高分 " + 读取最高分(当前地图)',
+                  "地图选择页最高分文字",
+              ),
+              (
+                  '"本地图历史最高  " + best',
+                  '"本地图历史最高分  " + best',
+                  "结算页历史最高分文字",
+              ),
+          ]
+
+          for 旧内容, 新内容, 名称 in 修改项:
+              次数 = 文本.count(旧内容)
+              if 次数 != 1:
+                  raise RuntimeError(
+                      f"最终文字修改失败：{名称} 应匹配 1 次，实际匹配 {次数} 次"
+                  )
+              文本 = 文本.replace(旧内容, 新内容, 1)
+
+          文件.write_text(文本, encoding="utf-8", newline="\n")
+
+          # 从最终完整 YML 中取出“生成完整 Android 游戏项目”的脚本并立即执行。
+          行组 = 文本.splitlines()
+          步骤标记 = "      - name: 生成完整 Android 游戏项目"
+          try:
+              步骤位置 = 行组.index(步骤标记)
+          except ValueError as 错误:
+              raise RuntimeError("找不到基础版本中的项目生成步骤") from 错误
+
+          运行位置 = -1
+          for i in range(步骤位置 + 1, len(行组)):
+              if 行组[i] == "        run: |":
+                  运行位置 = i
+                  break
+              if 行组[i].startswith("      - name:"):
+                  break
+
+          if 运行位置 < 0:
+              raise RuntimeError("找不到项目生成步骤的 run 块")
+
+          脚本行 = []
+          for 行 in 行组[运行位置 + 1:]:
+              if 行.strip() and not 行.startswith("          "):
+                  break
+              if 行.startswith("          "):
+                  脚本行.append(行[10:])
+              else:
+                  脚本行.append("")
+
+          if not 脚本行 or not any("MainActivity.java" in 行 for 行 in 脚本行):
+              raise RuntimeError("提取出的项目生成脚本不完整")
+
+          输出脚本 = Path("/tmp/生成最终项目.sh")
+          输出脚本.write_text("\n".join(脚本行) + "\n", encoding="utf-8")
+          print(f"已生成项目脚本，共 {len(脚本行)} 行")
+          FINALIZEPY
+
+          bash /tmp/生成最终项目.sh
+
+          # 检查本次要求的关键改动确实已经进入最终 Java 源码。
+          grep -q '清新原野 · 致敬经典 · 舒缓音乐' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+          grep -q '"本图最高分 "' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+          grep -q '"最高分 " + 读取最高分' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+          grep -q 'private void 更新山峰蜘蛛' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+          grep -q 'private void 切换音效' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+          grep -q 'p.有福字' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+          grep -q 'Math.round(20f \* 积分倍率)' \
+            app/src/main/java/com/qili/fruitflight/MainActivity.java
+
+      - name: 编译 Debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --stacktrace assembleDebug
+          mkdir -p output
+          cp app/build/outputs/apk/debug/app-debug.apk "output/小鸟小鸟.apk"
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 小鸟小鸟-Android-APK
+          path: output/小鸟小鸟.apk
+          if-no-files-found: error
+          retention-days: 30
