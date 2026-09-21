@@ -7324,9 +7324,9 @@ jobs:
                   // 长背景音使用流式 AudioTrack，避免部分设备无法稳定创建大块 MODE_STATIC 循环缓冲。
                   private volatile 循环流音轨 音乐轨道;
                   private volatile 循环流音轨 雨声轨道;
-                  private volatile 循环流音轨 繁花音乐轨道, 星河音乐轨道;
-                  private float 繁花音乐音量, 星河音乐音量;
-                  private float 已应用繁花音量=-1f, 已应用星河音量=-1f;
+                  private volatile 循环流音轨 星河音乐轨道;
+                  private float 星河音乐音量;
+                  private float 已应用星河音量=-1f;
                   private volatile short[] 雷声音效缓存;
                   private volatile short[][] 烟花音效缓存;
                   private volatile short[][] 果实音效缓存;
@@ -7436,12 +7436,11 @@ jobs:
 
                   程序化声音() {
                       Thread prepare = new Thread(() -> {
-                          short[] 音乐采样 = null, 雨声采样 = null, 花境采样 = null, 星河采样 = null;
+                          short[] 音乐采样 = null, 雨声采样 = null, 星河采样 = null;
                           short[] 雷声采样 = null;
                           short[][] 烟花采样 = null, 果实采样 = null;
                           try { 音乐采样 = 生成舒缓音乐(); } catch (Exception ignored) { }
                           try { 雨声采样 = 生成绵延细雨(); } catch (Exception ignored) { }
-                          try { 花境采样 = 生成主题音乐(false); } catch (Exception ignored) { }
                           try { 星河采样 = 生成主题音乐(true); } catch (Exception ignored) { }
                           try { 雷声采样 = 生成雷声(); } catch (Exception ignored) { }
                           try {
@@ -7458,25 +7457,22 @@ jobs:
                                   AudioAttributes.CONTENT_TYPE_MUSIC, "小鸟小鸟-经典音乐");
                           循环流音轨 rain = 安全创建循环轨道(雨声采样,
                                   AudioAttributes.CONTENT_TYPE_SONIFICATION, "小鸟小鸟-雨声");
-                          循环流音轨 floral = 安全创建循环轨道(花境采样,
-                                  AudioAttributes.CONTENT_TYPE_MUSIC, "小鸟小鸟-繁花音乐");
                           循环流音轨 galaxy = 安全创建循环轨道(星河采样,
                                   AudioAttributes.CONTENT_TYPE_MUSIC, "小鸟小鸟-星河音乐");
 
                           synchronized (程序化声音.this) {
                               if (已释放) {
                                   释放循环轨道(music); 释放循环轨道(rain);
-                                  释放循环轨道(floral); 释放循环轨道(galaxy);
+                                  释放循环轨道(galaxy);
                               } else {
                                   雷声音效缓存 = 雷声采样;
                                   烟花音效缓存 = 烟花采样;
                                   果实音效缓存 = 果实采样;
                                   音乐轨道 = music;
                                   雨声轨道 = rain;
-                                  繁花音乐轨道 = floral;
                                   星河音乐轨道 = galaxy;
                                   已应用音乐音量 = 已应用雨声音量 = -1f;
-                                  已应用繁花音量 = 已应用星河音量 = -1f;
+                                  已应用星河音量 = -1f;
                               }
                           }
                       }, "小鸟小鸟-声音准备");
@@ -7495,9 +7491,7 @@ jobs:
                       已应用雨声音量 = 更新循环轨道(雨声轨道, 当前雨声音量, 已应用雨声音量);
 
                       boolean active = 音效开启 && 正在游玩;
-                      繁花音乐音量 = 靠近(繁花音乐音量, active && map == 繁花秘境 ? .38f : 0f, dt * .12f);
                       星河音乐音量 = 靠近(星河音乐音量, active && map == 星河宇宙 ? .38f : 0f, dt * .10f);
-                      已应用繁花音量 = 更新循环轨道(繁花音乐轨道, 繁花音乐音量, 已应用繁花音量);
                       已应用星河音量 = 更新循环轨道(星河音乐轨道, 星河音乐音量, 已应用星河音量);
                   }
 
@@ -7537,28 +7531,47 @@ jobs:
                       try {
                           短音效线程池.execute(() -> {
                               AudioTrack track = null;
+                              boolean 已成功启动 = false;
                               try {
                                   short[][] cache = 果实音效缓存;
                                   short[] samples = cache == null ? null : cache[实际类型];
                                   if (samples == null) samples = 生成果实音效(实际类型);
-                                  track = 创建短轨道(samples);
-                                  track.setVolume(0.68f);
+
+                                  // 早期版本的果实音效使用独立 AudioTrack。现在改为 MODE_STREAM：
+                                  // 背景音乐已经验证这条链路在当前设备可正常工作，也避开部分安卓机
+                                  // 对极短 MODE_STATIC 音轨“创建成功但实际不出声”的兼容问题。
+                                  track = 创建流式短轨道();
+                                  track.setVolume(0.82f);
                                   synchronized (程序化声音.this) {
                                       if (已释放 || 本次代次 != 播放代次) return;
                                       活动短音轨道.add(track);
                                       track.play();
                                   }
-                                  // 原先 190ms 就强制释放，在部分设备上音轨刚启动便被销毁；按真实时长留出安全余量。
-                                  Thread.sleep(Math.max(320L, samples.length * 1000L / 采样率 + 180L));
+
+                                  int pos = 0;
+                                  while (pos < samples.length && !已释放 && 本次代次 == 播放代次) {
+                                      int wrote = track.write(samples, pos, samples.length - pos, AudioTrack.WRITE_BLOCKING);
+                                      if (wrote <= 0) throw new IllegalStateException("果实音效写入失败:" + wrote);
+                                      pos += wrote;
+                                  }
+                                  已成功启动 = pos > 0;
+                                  // 等 PCM 真正从扬声器播放结束后再释放，避免极短声音被截掉。
+                                  Thread.sleep(Math.max(260L, samples.length * 1000L / 采样率 + 140L));
                               } catch (Exception ignored) {
+                                  // 流式短音轨如果在某台设备上仍失败，至少用系统提示音保底，
+                                  // 不再出现“吃到果实完全无声音”的情况。
+                                  if (!已成功启动 && !已释放 && 本次代次 == 播放代次) {
+                                      播放果实备用提示音(实际类型);
+                                  }
                               } finally {
                                   synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
-                                  释放短轨道(track);
+                                  释放短音轨道(track);
                                   释放短音效槽位();
                               }
                           });
                       } catch (RuntimeException ignored) {
                           释放短音效槽位();
+                          播放果实备用提示音(实际类型);
                       }
                   }
 
@@ -7597,13 +7610,12 @@ jobs:
                       播放代次++;
                       for (AudioTrack track : 活动短音轨道) 暂停短轨道(track);
                       当前音乐音量 = 当前雨声音量 = 0f;
-                      繁花音乐音量 = 星河音乐音量 = 0f;
+                      星河音乐音量 = 0f;
                       暂停循环轨道(音乐轨道);
                       暂停循环轨道(雨声轨道);
-                      暂停循环轨道(繁花音乐轨道);
                       暂停循环轨道(星河音乐轨道);
                       已应用音乐音量 = 已应用雨声音量 = 0f;
-                      已应用繁花音量 = 已应用星河音量 = 0f;
+                      已应用星河音量 = 0f;
                   }
 
                   synchronized void 释放() {
@@ -7612,9 +7624,8 @@ jobs:
                       短音效线程池.shutdownNow();
                       释放循环轨道(音乐轨道);
                       释放循环轨道(雨声轨道);
-                      释放循环轨道(繁花音乐轨道);
                       释放循环轨道(星河音乐轨道);
-                      音乐轨道 = 雨声轨道 = 繁花音乐轨道 = 星河音乐轨道 = null;
+                      音乐轨道 = 雨声轨道 = 星河音乐轨道 = null;
                       雷声音效缓存 = null;
                       烟花音效缓存 = null;
                       果实音效缓存 = null;
@@ -7663,6 +7674,37 @@ jobs:
 
                   private void 释放循环轨道(循环流音轨 track) {
                       if (track != null) track.释放();
+                  }
+
+                  private AudioTrack 创建流式短轨道() {
+                      int minBuffer = AudioTrack.getMinBufferSize(采样率,
+                              AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
+                      if (minBuffer <= 0) minBuffer = 2048;
+                      AudioTrack track = new AudioTrack.Builder()
+                              .setAudioAttributes(提示音音频属性)
+                              .setAudioFormat(单声道音频格式)
+                              .setTransferMode(AudioTrack.MODE_STREAM)
+                              .setBufferSizeInBytes(Math.max(minBuffer, 4096))
+                              .build();
+                      if (track.getState() != AudioTrack.STATE_INITIALIZED) {
+                          try { track.release(); } catch (Exception ignored) { }
+                          throw new IllegalStateException("流式短音轨初始化失败");
+                      }
+                      return track;
+                  }
+
+                  private void 播放果实备用提示音(int 类型) {
+                      int tone;
+                      switch (类型) {
+                          case 冲刺果实: tone = ToneGenerator.TONE_PROP_BEEP2; break;
+                          case 冻结果实: tone = ToneGenerator.TONE_PROP_NACK; break;
+                          case 无敌果实: tone = ToneGenerator.TONE_PROP_ACK; break;
+                          case 护盾果实: tone = ToneGenerator.TONE_PROP_BEEP; break;
+                          case 随机果实: tone = ToneGenerator.TONE_PROP_BEEP2; break;
+                          case 花朵果实: tone = ToneGenerator.TONE_PROP_ACK; break;
+                          default: tone = ToneGenerator.TONE_PROP_BEEP; break;
+                      }
+                      GameView.this.播放音效(tone, 95);
                   }
 
                   private AudioTrack 创建短轨道(short[] samples) {
