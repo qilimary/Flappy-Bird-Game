@@ -677,6 +677,9 @@ jobs:
               private boolean 显示音效设置;
               private boolean 音效开启 = true;
               private boolean 跳跃音效开启 = true;
+              private boolean 背景声音开启 = true;
+              private boolean 困难模式;
+              private float 困难模式过渡;
               private boolean 内测模式;
               private int 标题连续点击次数;
               private long 标题首次点击时间;
@@ -726,6 +729,8 @@ jobs:
               private final RectF 音效设置关闭按钮 = new RectF();
               private final RectF 全部声音切换按钮 = new RectF();
               private final RectF 跳跃声音切换按钮 = new RectF();
+              private final RectF 背景声音切换按钮 = new RectF();
+              private final RectF 困难模式按钮 = new RectF();
               private final RectF[] 地图按钮 = {
                       new RectF(), new RectF(), new RectF(), new RectF(),
                       new RectF(), new RectF(), new RectF(), new RectF()
@@ -741,6 +746,7 @@ jobs:
                   旧皮肤序号 = 当前皮肤序号;
                   音效开启 = 存档.getBoolean("音效开启", true);
                   跳跃音效开启 = 存档.getBoolean("跳跃音效开启", true);
+                  背景声音开启 = 存档.getBoolean("背景声音开启", true);
                   内测模式 = 存档.getBoolean("内测模式", false);
                   最高速度地图掩码 = 存档.getInt("成就进度_最高速度地图", 0);
                   已收集果实掩码 = 存档.getInt("成就进度_果实", 0) & 0b1111111;
@@ -758,6 +764,8 @@ jobs:
                   for (int i = 0; i < 死亡方式计数.length; i++) {
                       死亡方式计数[i] = 存档.getInt("成就进度_死亡方式_" + i, 0);
                   }
+                  困难模式 = 存档.getBoolean("困难模式", false) && 已解锁困难模式();
+                  困难模式过渡 = 困难模式 ? 1f : 0f;
                   画笔.setStyle(Paint.Style.FILL);
                   描边.setStyle(Paint.Style.STROKE);
                   描边.setStrokeCap(Paint.Cap.ROUND);
@@ -837,6 +845,7 @@ jobs:
                   加生命按钮.set(宽 * 0.632f, 控制Y - 宽 * 0.036f,
                           宽 * 0.700f, 控制Y + 宽 * 0.036f);
                   开始按钮.set(宽 * 0.14f, 高 * 0.775f, 宽 * 0.86f, 高 * 0.844f);
+                  困难模式按钮.set(宽 * 0.23f, 高 * 0.858f, 宽 * 0.77f, 高 * 0.905f);
                   重来按钮.set(宽 * 0.14f, 高 * 0.66f, 宽 * 0.86f, 高 * 0.735f);
                   返回按钮.set(宽 * 0.14f, 高 * 0.755f, 宽 * 0.86f, 高 * 0.825f);
                   暂停按钮.set(宽 * 0.875f, 高 * 0.028f, 宽 * 0.965f, 高 * 0.073f);
@@ -847,8 +856,9 @@ jobs:
                   问号按钮.set(宽 * 0.880f, 高 * 0.035f, 宽 * 0.955f, 高 * 0.075f);
                   说明关闭按钮.set(宽 * 0.82f, 高 * 0.105f, 宽 * 0.90f, 高 * 0.15f);
                   音效设置关闭按钮.set(宽 * 0.79f, 高 * 0.270f, 宽 * 0.875f, 高 * 0.318f);
-                  全部声音切换按钮.set(宽 * 0.18f, 高 * 0.385f, 宽 * 0.82f, 高 * 0.462f);
-                  跳跃声音切换按钮.set(宽 * 0.18f, 高 * 0.495f, 宽 * 0.82f, 高 * 0.572f);
+                  全部声音切换按钮.set(宽 * 0.18f, 高 * 0.365f, 宽 * 0.82f, 高 * 0.435f);
+                  跳跃声音切换按钮.set(宽 * 0.18f, 高 * 0.465f, 宽 * 0.82f, 高 * 0.535f);
+                  背景声音切换按钮.set(宽 * 0.18f, 高 * 0.565f, 宽 * 0.82f, 高 * 0.635f);
               }
           
               @Override
@@ -882,6 +892,7 @@ jobs:
           
                   绘制背景(canvas);
                   if (状态 == 菜单) {
+                      绘制困难模式背景覆盖(canvas);
                       绘制菜单(canvas);
                   } else {
                       绘制插值场景(canvas);
@@ -910,6 +921,8 @@ jobs:
                   if (菜单说明覆盖时间 > 0f) 菜单说明覆盖时间 -= dt;
                   返回菜单冷却 = Math.max(0f, 返回菜单冷却 - dt);
                   if (皮肤切换进度 < 1f) 皮肤切换进度 = Math.min(1f, 皮肤切换进度 + dt / 0.32f);
+                  if (困难模式) 困难模式过渡 = Math.min(1f, 困难模式过渡 + dt / 0.72f);
+                  else 困难模式过渡 = Math.max(0f, 困难模式过渡 - dt / 0.48f);
                   衰减通用特效(dt);
                   更新粒子浮字烟花(dt);
                   更新环境相位(dt, false);
@@ -985,6 +998,22 @@ jobs:
               private boolean 已解锁星河宇宙() {
                   return 内测模式 || 达到分数的地图数量(星河解锁分数) >= 2;
               }
+
+              private boolean 已解锁困难模式() {
+                  return 已解锁新春() && 已解锁星河宇宙() && 已解锁穿越();
+              }
+
+              private float 当前最高速度() {
+                  return 困难模式 ? 8.0f : 4.2f;
+              }
+
+              private float 当前速度进度() {
+                  return 限制((难度倍率 - 1f) / Math.max(0.01f, 当前最高速度() - 1f), 0f, 1f);
+              }
+
+              private float NPC冷却(float normalSeconds) {
+                  return 困难模式 ? normalSeconds * 0.68f : normalSeconds;
+              }
           
               private boolean 穿越保护中() {
                   return 当前地图 == 穿越 && 穿越过渡中;
@@ -1027,6 +1056,11 @@ jobs:
               }
           
               private void 开始游戏() {
+                  if (困难模式 && !已解锁困难模式()) {
+                      困难模式 = false;
+                      困难模式过渡 = 0f;
+                      存档.edit().putBoolean("困难模式", false).apply();
+                  }
                   if (当前地图 == 新春 && !已解锁新春()) {
                       菜单说明覆盖 = "任意一个地图达到4000分后解锁。";
                       菜单说明覆盖时间 = 3.2f;
@@ -1151,7 +1185,7 @@ jobs:
           
                   猎手状态 = 0;
                   猎手碰到 = false;
-                  猎手冷却 = 5.2f + 随机.nextFloat() * 4.0f;
+                  猎手冷却 = NPC冷却(5.2f + 随机.nextFloat() * 4.0f);
                   龙状态 = 0;
                   龙碰到 = false;
                   龙方向 = -1;
@@ -1159,9 +1193,9 @@ jobs:
                   龙背景攻击等待 = 0f;
                   龙背景后攻击 = false;
                   龙预警时间 = 0f;
-                  龙冷却 = 11f + 随机.nextFloat() * 9f;
+                  龙冷却 = NPC冷却(11f + 随机.nextFloat() * 9f);
                   灯笼鱼状态 = 0;
-                  灯笼鱼冷却 = 6.8f + 随机.nextFloat() * 4.6f;
+                  灯笼鱼冷却 = NPC冷却(6.8f + 随机.nextFloat() * 4.6f);
                   灯笼鱼X = 宽 * 0.84f;
                   灯笼鱼Y = 高 * 0.38f;
                   灯笼鱼基准X = 灯笼鱼X;
@@ -1173,13 +1207,13 @@ jobs:
                   灯笼鱼光球激活 = false;
                   海洋浪花相位 = 随机.nextFloat() * 6.28f;
                   蹿天猴状态 = 0;
-                  蹿天猴冷却 = 28f + 随机.nextFloat() * 22f;
+                  蹿天猴冷却 = NPC冷却(28f + 随机.nextFloat() * 22f);
                   蹿天猴清障时间 = 0f;
                   游龙驱散时间 = 0f;
                   流星状态 = 0;
                   流星碰到 = false;
                   // 特殊流星是低频事件，通常一局需要较长时间才会遇到。
-                  流星冷却 = 17f + 随机.nextFloat() * 13f;
+                  流星冷却 = NPC冷却(17f + 随机.nextFloat() * 13f);
                   幸运星状态 = 0;
                   幸运星冷却 = 34f + 随机.nextFloat() * 24f;
                   幸运星守护时间 = 0f;
@@ -1221,7 +1255,7 @@ jobs:
                   p.种子 = 随机.nextInt();
                   int 有效地图 = 生效地图();
           
-                  float 进度 = 限制((难度倍率 - 1f) / 3.2f, 0f, 1f);
+                  float 进度 = 当前速度进度();
                   float 缺口高 = 高 * (0.205f + 随机.nextFloat() * 0.038f);
                   // 危险山峰不再额外放宽通道，和普通地图使用同一套名义缺口高度。
                   缺口高 *= 当前地图 == 穿越 ? 0.94f : 0.97f;
@@ -1231,6 +1265,8 @@ jobs:
                   // 冰刺加入真实碰撞后，冰雪地图把原始管道缺口放宽 20%。
                   // 刺尖仍会占据其中一部分，所以实际可通行空间只比旧版略窄，整体难度小幅提高。
                   if (有效地图 == 冰天雪地) 缺口高 *= 1.20f;
+                  // 困难模式主动收窄通道；后面的可通行空间校正仍会保证不会生成物理死局。
+                  if (困难模式) 缺口高 *= 0.88f;
                   float 候选Y;
                   if (连续同高剩余 > 0) {
                       候选Y = 上次缺口Y;
@@ -1295,16 +1331,16 @@ jobs:
                           p.上边界[i] = top + 偏移;
                           p.下边界[i] = bottom + 偏移;
                       }
-                      p.有蛇 = 随机.nextFloat() < 0.105f;
-                      // 有蛇的山峰中，20% 只作为环境生物观察玩家，不会发起袭击。
-                      p.蛇不袭击 = p.有蛇 && 随机.nextFloat() < 0.20f;
+                      p.有蛇 = 随机.nextFloat() < (困难模式 ? 0.155f : 0.105f);
+                      // 困难模式下危险生物更常主动袭击。
+                      p.蛇不袭击 = p.有蛇 && 随机.nextFloat() < (困难模式 ? 0.08f : 0.20f);
                       p.蛇在上方 = 随机.nextBoolean();
                       p.蛇最大伸出 = Math.min(高 * 0.034f, p.缺口高 * 0.15f);
                       // 蜘蛛和蛇不会挤在同一段波峰，避免视觉与操作压力叠加。
-                      p.有蜘蛛 = !p.有蛇 && 随机.nextFloat() < 0.085f;
-                      // 一半蜘蛛会从上方垂丝埋伏；平时贴近山顶，玩家接近时才突然坠下。
-                      p.蜘蛛垂丝 = p.有蜘蛛 && 随机.nextFloat() < 0.50f;
-                      p.蜘蛛会偷袭 = p.蜘蛛垂丝 && 随机.nextFloat() < 0.80f;
+                      p.有蜘蛛 = !p.有蛇 && 随机.nextFloat() < (困难模式 ? 0.130f : 0.085f);
+                      // 困难模式提高垂丝埋伏和主动偷袭比例。
+                      p.蜘蛛垂丝 = p.有蜘蛛 && 随机.nextFloat() < (困难模式 ? 0.62f : 0.50f);
+                      p.蜘蛛会偷袭 = p.蜘蛛垂丝 && 随机.nextFloat() < (困难模式 ? 0.93f : 0.80f);
                       p.蜘蛛在上方 = p.蜘蛛垂丝 || 随机.nextBoolean();
                       if (p.蜘蛛垂丝) {
                           // 蜘蛛的“悬丝 + 偷袭下坠”总触及距离只比蛇头最大伸出略长。
@@ -1386,20 +1422,21 @@ jobs:
               private void 创建可能果实(障碍 p) {
                   int 类型 = -1;
                   int 有效地图 = 生效地图();
+                  float 果实概率倍率 = 困难模式 ? 0.60f : 1f;
                   if (有效地图 == 繁花秘境 && !花果已生成
-                          && 随机.nextFloat() < 0.0035f) {
+                          && 随机.nextFloat() < 0.0035f * 果实概率倍率) {
                       类型 = 花朵果实;
                       花果已生成 = true;
-                  } else if (有效地图 == 新春 && 随机.nextFloat() < 0.018f) {
+                  } else if (有效地图 == 新春 && 随机.nextFloat() < 0.018f * 果实概率倍率) {
                       类型 = 烟花果实;
                   } else {
                       // 奇异果实整体保持低频；特殊果实与标准果实仍分开抽取。
                       float r = 随机.nextFloat();
-                      float 冲刺概率 = 0.012f;
-                      float 冻结概率 = 有效地图 == 冰天雪地 ? 0.020f : 0.012f;
-                      float 无敌概率 = 0.012f;
-                      float 护盾概率 = 0.012f;
-                      float 随机概率 = 0.012f;
+                      float 冲刺概率 = 0.012f * 果实概率倍率;
+                      float 冻结概率 = (有效地图 == 冰天雪地 ? 0.020f : 0.012f) * 果实概率倍率;
+                      float 无敌概率 = 0.012f * 果实概率倍率;
+                      float 护盾概率 = 0.012f * 果实概率倍率;
+                      float 随机概率 = 0.012f * 果实概率倍率;
                       if (r < 冲刺概率) 类型 = 冲刺果实;
                       else if (r < 冲刺概率 + 冻结概率) 类型 = 冻结果实;
                       else if (r < 冲刺概率 + 冻结概率 + 无敌概率) 类型 = 无敌果实;
@@ -1431,13 +1468,19 @@ jobs:
           
                   经过秒数 += dt;
                   if (冲刺时间 <= 0f) 难度计时 += dt;
-                  // 保持原有速度成长节奏，仅将最终速度上限提高到 4.2 倍。
-                  难度倍率 = 1f + 3.2f * (1f - (float) Math.exp(-难度计时 / 185f));
-                  难度倍率 = Math.min(4.2f, 难度倍率);
+                  if (困难模式) {
+                      // 地狱难度成长更快，并在约数分钟内真正触及 8 倍上限。
+                      float 困难进度 = 1f - (float) Math.exp(-难度计时 / 135f)
+                              + 难度计时 / 1200f;
+                      难度倍率 = 1f + 7f * 限制(困难进度, 0f, 1f);
+                  } else {
+                      // 普通模式保持原有 4.2 倍成长曲线。
+                      难度倍率 = 1f + 3.2f * (1f - (float) Math.exp(-难度计时 / 185f));
+                      难度倍率 = Math.min(4.2f, 难度倍率);
+                  }
                   检查最高速度成就();
-                  // 积分与速度使用同一成长进度：速度达到 4.2 倍时，积分才达到 2.1 倍。
-                  积分倍率 = Math.min(2.1f,
-                          1f + (难度倍率 - 1f) * (1.1f / 3.2f));
+                  // 两种模式都按各自速度上限的完成进度计算积分，避免困难模式积分失控。
+                  积分倍率 = Math.min(2.1f, 1f + 当前速度进度() * 1.1f);
                   累计时间分 += dt * 4f * 积分倍率 * 当前常规得分倍率();
                   更新环境相位(dt, true);
                   更新阴森古堡(dt);
@@ -1493,7 +1536,7 @@ jobs:
                           小鸟X += (宽 * 0.28f - 小鸟X) * Math.min(1f, dt * 6f);
                       }
           
-                      float 速度进度 = 限制((难度倍率 - 1f) / 3.2f, 0f, 1f);
+                      float 速度进度 = 当前速度进度();
                       // 基础下坠加速度提高 10%。
                       float 重力 = 高 * 2.222f * (0.99f + 0.12f * 速度进度);
                       if (冻结时间 > 0f) 重力 *= 0.68f;
@@ -1614,7 +1657,7 @@ jobs:
                           if (穿越当前主题 == 海洋世界) {
                               解锁成就("海底世界", "海底世界");
                               灯笼鱼状态 = 0;
-                              灯笼鱼冷却 = 2.0f + 随机.nextFloat() * 1.4f;
+                              灯笼鱼冷却 = NPC冷却(2.0f + 随机.nextFloat() * 1.4f);
                               海洋浪花相位 = 随机.nextFloat() * 6.28f;
                               生成浮字(宽 * 0.5f, 高 * 0.28f, "隐藏世界：海洋世界", 0xFF8EEBFF);
                           }
@@ -1879,7 +1922,7 @@ jobs:
                           生成浮字(宽 * 0.5f, 高 * 0.20f, "蹿天猴坠落！", 0xFFFFD36D);
                           播放音效(ToneGenerator.TONE_PROP_BEEP2, 70);
                       } else {
-                          蹿天猴冷却 = 24f + 随机.nextFloat() * 26f;
+                          蹿天猴冷却 = NPC冷却(24f + 随机.nextFloat() * 26f);
                       }
                       return;
                   }
@@ -1895,7 +1938,7 @@ jobs:
                       生成爆裂(蹿天猴X, 地面线 - 高 * 0.02f, 0xFFFFB347, 42);
                       生成浮字(宽 * 0.5f, 高 * 0.34f, "蹿天猴清场 · 2秒", 0xFFFFE28A);
                       声音系统.播放烟花音效(2);
-                      蹿天猴冷却 = 45f + 随机.nextFloat() * 40f;
+                      蹿天猴冷却 = NPC冷却(45f + 随机.nextFloat() * 40f);
                   }
               }
           
@@ -2284,7 +2327,7 @@ jobs:
                       }
                       if (猎手X < -宽 * 0.22f) {
                           猎手状态 = 0;
-                          猎手冷却 = 5.8f + 随机.nextFloat() * 4.2f;
+                          猎手冷却 = NPC冷却(5.8f + 随机.nextFloat() * 4.2f);
                       }
                   }
               }
@@ -2365,7 +2408,7 @@ jobs:
                       boolean 离开屏幕 = 龙方向 < 0 ? 龙X < -宽 * 0.34f : 龙X > 宽 * 1.34f;
                       if (离开屏幕) {
                           龙状态 = 0;
-                          龙冷却 = 8.8f + 随机.nextFloat() * 8.2f;
+                          龙冷却 = NPC冷却(8.8f + 随机.nextFloat() * 8.2f);
                       }
                   } else if (龙状态 == 2) {
                       龙预警时间 -= dt;
@@ -2394,7 +2437,7 @@ jobs:
                                       "躲过游龙 +" + 游龙奖励, 0xFFFFD26A);
                           }
                           龙状态 = 0;
-                          龙冷却 = 14f + 随机.nextFloat() * 10f;
+                          龙冷却 = NPC冷却(14f + 随机.nextFloat() * 10f);
                       }
                   }
               }
@@ -2442,7 +2485,7 @@ jobs:
                       }
                       if (流星X < -宽 * 0.25f || 流星Y > 地面线 + 高 * 0.12f) {
                           流星状态 = 0;
-                          流星冷却 = 18f + 随机.nextFloat() * 15f;
+                          流星冷却 = NPC冷却(18f + 随机.nextFloat() * 15f);
                       }
                   }
               }
@@ -2789,7 +2832,7 @@ jobs:
           
               private void 扇动翅膀() {
                   if (穿越保护中()) return;
-                  float 速度进度 = 限制((难度倍率 - 1f) / 3.2f, 0f, 1f);
+                  float 速度进度 = 当前速度进度();
                   if (冲刺时间 > 0f) {
                       // 冲刺期间允许稍高一点的主动抬升，但仍明显低于普通跳跃。
                       小鸟速度Y = -高 * (0.146f + 0.0145f * 难度倍率);
@@ -2838,8 +2881,8 @@ jobs:
               }
           
               private void 检查最高速度成就() {
-                  // 一位小数已经显示为 4.2× 时，视为达到系统最高速度。
-                  if (难度倍率 < 4.15f) return;
+                  // 达到当前模式的最高速度时计入成就；普通为 4.2×，困难为 8.0×。
+                  if (难度倍率 < 当前最高速度() - 0.05f) return;
                   int bit = 1 << 当前地图;
                   boolean 本次新增最高速 = (最高速度地图掩码 & bit) == 0;
                   if (本次新增最高速) {
@@ -2958,7 +3001,7 @@ jobs:
                               灯笼鱼基准X = 宽 * 0.84f;
                           } else if (灯笼鱼X >= 宽 * 1.22f) {
                               灯笼鱼状态 = 0;
-                              灯笼鱼冷却 = 7f + 随机.nextFloat() * 5f;
+                              灯笼鱼冷却 = NPC冷却(7f + 随机.nextFloat() * 5f);
                               灯笼鱼受击次数 = 0;
                               灯笼鱼光球激活 = false;
                           }
@@ -2968,7 +3011,7 @@ jobs:
                       灯笼鱼Y -= 高 * 0.05f * dt;
                       if (灯笼鱼X >= 宽 * 1.24f) {
                           灯笼鱼状态 = 0;
-                          灯笼鱼冷却 = 11f + 随机.nextFloat() * 6f;
+                          灯笼鱼冷却 = NPC冷却(11f + 随机.nextFloat() * 6f);
                           灯笼鱼受击次数 = 0;
                           灯笼鱼光球激活 = false;
                       }
@@ -6215,7 +6258,7 @@ jobs:
                           高 * 0.003f, 高 * 0.003f, 画笔);
                   配置渐变(barLeft, 0, barRight, 0,
                           0xFF65E4B5, 0xFFFFB84A);
-                  float progress = (难度倍率 - 1f) / 3.2f;
+                  float progress = 当前速度进度();
                   c.drawRoundRect(barLeft, barTop,
                           barLeft + (barRight - barLeft) * progress,
                           barTop + 高 * 0.006f, 高 * 0.003f, 高 * 0.003f, 画笔);
@@ -6311,9 +6354,10 @@ jobs:
                   准备填充();
                   文本(c, "小 鸟 小 鸟", 宽 * 0.5f, 高 * 0.096f,
                           宽 * 0.070f, Color.WHITE, Paint.Align.CENTER, true);
-                  文本(c, 已解锁穿越()
-                                  ? "穿越八境 · 飞过最终章"
-                                  : "穿越七境 · 收集奇异果实与幸运星。",
+                  文本(c, 困难模式
+                                  ? "困难模式 · 地狱航线"
+                                  : (已解锁穿越() ? "穿越八境 · 飞过最终章"
+                                  : "穿越七境 · 收集奇异果实与幸运星。"),
                           宽 * 0.5f, 高 * 0.127f, 宽 * 0.029f,
                           0xDDE9F9FF, Paint.Align.CENTER, false);
                   纯色(0x45FFFFFF);
@@ -6365,14 +6409,43 @@ jobs:
                   文本(c, 菜单说明覆盖时间 > 0f ? 菜单说明覆盖 : 地图说明文字(), 宽 * 0.5f, 高 * 0.758f,
                           宽 * 0.023f, 0xE5E7F7FF, Paint.Align.CENTER, false);
                   绘制主按钮(c, 开始按钮, "开始飞翔");
-                  文本(c, "点击飞行 · 果实低概率出现 · 最高速度 4.2×",
-                          宽 * 0.5f, 高 * 0.925f, 宽 * 0.020f,
+                  if (已解锁困难模式()) 绘制困难模式按钮(c);
+                  文本(c, 困难模式
+                                  ? "地狱难度 · 最高速度 8.0× · 果实更稀有"
+                                  : "点击飞行 · 果实低概率出现 · 最高速度 4.2×",
+                          宽 * 0.5f, 高 * 0.940f, 宽 * 0.020f,
                           0xB8FFFFFF, Paint.Align.CENTER, false);
                   if (显示游戏说明) 绘制游戏说明(c);
                   else if (显示成就) 绘制成就面板(c);
                   else if (显示音效设置) 绘制音效设置面板(c);
               }
           
+              private void 绘制困难模式背景覆盖(Canvas c) {
+                  if (困难模式过渡 <= 0.001f) return;
+                  float sweep = 宽 * 缓动(困难模式过渡);
+                  c.save();
+                  c.clipRect(0f, 0f, sweep, 高);
+                  配置渐变(0f, 0f, 宽, 0f, 0x48FF4C1F, 0x70400012);
+                  c.drawRect(0f, 0f, 宽, 高, 画笔);
+                  清除着色器();
+                  // 轻微暗红雾层，保留原地图细节，不把界面压成纯黑。
+                  纯色(0x242D0008);
+                  c.drawRect(0f, 0f, sweep, 高, 画笔);
+                  c.restore();
+              }
+
+              private void 绘制困难模式按钮(Canvas c) {
+                  int fill = 困难模式 ? 0xD49A241E : 0xA04B2630;
+                  int stroke = 困难模式 ? 0xFFFF8A4D : 0xAAE8A6A0;
+                  纯色(fill);
+                  c.drawRoundRect(困难模式按钮, 高 * 0.022f, 高 * 0.022f, 画笔);
+                  配置描边(stroke, 宽 * 0.0028f);
+                  c.drawRoundRect(困难模式按钮, 高 * 0.022f, 高 * 0.022f, 描边);
+                  文本(c, 困难模式 ? "困难模式：已开启" : "开启困难模式",
+                          困难模式按钮.centerX(), 困难模式按钮.centerY() + 宽 * 0.011f,
+                          宽 * 0.026f, Color.WHITE, Paint.Align.CENTER, true);
+              }
+
               private void 绘制皮肤轮播(Canvas c) {
                   float centerY = 高 * 0.205f + (float) Math.sin(动画时间 * 2.2) * 高 * 0.006f;
                   if (皮肤切换进度 >= 1f) {
@@ -6441,9 +6514,22 @@ jobs:
                           c.drawCircle(xx, r.top+r.height()*(.24f+i*.18f), 宽*(.010f+i*.004f),画笔);
                       }
                   }
+                  // 困难模式的地狱色按全屏横坐标从左向右扫过每张卡片。
+                  float 困难扫过X = 宽 * 缓动(困难模式过渡);
+                  if (困难扫过X > r.left) {
+                      c.save();
+                      c.clipRect(r.left, r.top, Math.min(r.right, 困难扫过X), r.bottom);
+                      配置渐变(r.left, r.top, r.right, r.bottom, 0x5CFF4A20, 0x784A0616);
+                      c.drawRect(r, 画笔);
+                      清除着色器();
+                      c.restore();
+                  }
                   c.restore();
                   配置描边(selected?0xFFFFE6A0:0x60CFE6F2,selected?宽*.004f:宽*.0018f);c.drawRoundRect(r,radius,radius,描边);
+                  // 地图图标统一裁剪在卡片圆角范围内，修复新春灯笼光晕溢出卡片的问题。
+                  c.save();路径.reset();路径.addRoundRect(r,radius,radius,Path.Direction.CW);c.clipPath(路径);
                   绘制地图图标(c,unknown?穿越:map,ix,iy,r.height()*.83f);
+                  c.restore();
                   String title=unknown?"未知 · 终章":地图名称[map];
                   String sub=unknown?"终章收集 "+菜单终章收集数+"/8":springLocked?"单图 " + 新春解锁分数 + " 分解锁":galaxyLocked?"两图各 " + 星河解锁分数 + " 分解锁":地图副标题[map];
                   float tx=r.left+宽*.123f, available=r.right-tx-宽*.025f;
@@ -6739,7 +6825,7 @@ jobs:
                   纯色(0xD8050B12);
                   c.drawRect(0, 0, 宽, 高, 画笔);
                   绘制玻璃框(c, 宽 * 0.10f, 高 * 0.235f,
-                          宽 * 0.90f, 高 * 0.640f, 0xF5122632);
+                          宽 * 0.90f, 高 * 0.735f, 0xF5122632);
                   文本(c, "声音设置", 宽 * 0.5f, 高 * 0.315f,
                           宽 * 0.050f, Color.WHITE, Paint.Align.CENTER, true);
                   纯色(0x44FFFFFF);
@@ -6752,8 +6838,10 @@ jobs:
                           音效开启 ? "关闭全部声音" : "开启全部声音", 音效开启);
                   绘制声音选项按钮(c, 跳跃声音切换按钮,
                           跳跃音效开启 ? "关闭跳跃声音" : "开启跳跃声音", 跳跃音效开启);
-                  文本(c, "跳跃声音可单独关闭；关闭全部声音会同时暂停音乐、天气和烟花音效。",
-                          宽 * 0.5f, 高 * 0.610f, 宽 * 0.0205f,
+                  绘制声音选项按钮(c, 背景声音切换按钮,
+                          背景声音开启 ? "关闭背景声音" : "开启背景声音", 背景声音开启);
+                  文本(c, "背景声音包括地图音乐与雨声；果实、烟花等效果音不受影响。",
+                          宽 * 0.5f, 高 * 0.690f, 宽 * 0.0195f,
                           0xCFEAF5F8, Paint.Align.CENTER, false);
               }
           
@@ -7090,6 +7178,8 @@ jobs:
                                   切换全部声音();
                               } else if (跳跃声音切换按钮.contains(x, y)) {
                                   切换跳跃声音();
+                              } else if (背景声音切换按钮.contains(x, y)) {
+                                  切换背景声音();
                               }
                           } else if (说明关闭按钮.contains(x, y)) {
                               显示游戏说明 = false;
@@ -7162,6 +7252,8 @@ jobs:
                               提示时间 = 2.8f;
                           }
                           播放音效(ToneGenerator.TONE_PROP_BEEP, 30);
+                      } else if (已解锁困难模式() && 困难模式按钮.contains(x, y)) {
+                          切换困难模式();
                       } else if (开始按钮.contains(x, y)) {
                           if (返回菜单冷却 <= 0f) 开始游戏();
                       }
@@ -7209,6 +7301,26 @@ jobs:
                   if (音效开启) 播放音效(ToneGenerator.TONE_PROP_BEEP, 36);
                   提示文字 = 跳跃音效开启 ? "跳跃声音已开启" : "跳跃声音已关闭";
                   提示时间 = 1.8f;
+              }
+
+              private void 切换背景声音() {
+                  背景声音开启 = !背景声音开启;
+                  存档.edit().putBoolean("背景声音开启", 背景声音开启).apply();
+                  if (!背景声音开启) 声音系统.暂停背景();
+                  if (音效开启) 播放音效(ToneGenerator.TONE_PROP_BEEP, 36);
+                  提示文字 = 背景声音开启 ? "背景声音已开启" : "背景声音已关闭";
+                  提示时间 = 1.8f;
+              }
+
+              private void 切换困难模式() {
+                  if (!已解锁困难模式()) return;
+                  困难模式 = !困难模式;
+                  if (困难模式) 困难模式过渡 = 0f;
+                  else 困难模式过渡 = 1f;
+                  存档.edit().putBoolean("困难模式", 困难模式).apply();
+                  播放音效(困难模式 ? ToneGenerator.TONE_PROP_NACK : ToneGenerator.TONE_PROP_ACK, 75);
+                  提示文字 = 困难模式 ? "困难模式已开启 · 最高速度 8.0×" : "困难模式已关闭";
+                  提示时间 = 2.2f;
               }
           
               private void 播放音效(int tone, int durationMs) {
@@ -7482,15 +7594,16 @@ jobs:
 
                   synchronized void 更新(float dt, boolean 正在游玩, int map, float rainAmount) {
                       if (已释放) return;
-                      float 音乐目标 = 音效开启 && 正在游玩 && map == 经典管道 ? 0.34f : 0f;
-                      float 雨声目标 = 音效开启 && 正在游玩 && map == 黑暗丛林
+                      boolean 背景活动 = 音效开启 && 背景声音开启 && 正在游玩;
+                      float 音乐目标 = 背景活动 && map == 经典管道 ? 0.34f : 0f;
+                      float 雨声目标 = 背景活动 && map == 黑暗丛林
                               ? 0.28f * 限制(rainAmount, 0f, 1f) : 0f;
                       当前音乐音量 = 靠近(当前音乐音量, 音乐目标, dt * 0.060f);
                       当前雨声音量 = 靠近(当前雨声音量, 雨声目标, dt * 0.055f);
                       已应用音乐音量 = 更新循环轨道(音乐轨道, 当前音乐音量, 已应用音乐音量);
                       已应用雨声音量 = 更新循环轨道(雨声轨道, 当前雨声音量, 已应用雨声音量);
 
-                      boolean active = 音效开启 && 正在游玩;
+                      boolean active = 背景活动;
                       星河音乐音量 = 靠近(星河音乐音量, active && map == 星河宇宙 ? .38f : 0f, dt * .10f);
                       已应用星河音量 = 更新循环轨道(星河音乐轨道, 星河音乐音量, 已应用星河音量);
                   }
@@ -7537,29 +7650,36 @@ jobs:
                                   short[] samples = cache == null ? null : cache[实际类型];
                                   if (samples == null) samples = 生成果实音效(实际类型);
 
-                                  // 早期版本的果实音效使用独立 AudioTrack。现在改为 MODE_STREAM：
-                                  // 背景音乐已经验证这条链路在当前设备可正常工作，也避开部分安卓机
-                                  // 对极短 MODE_STATIC 音轨“创建成功但实际不出声”的兼容问题。
-                                  track = 创建流式短轨道();
-                                  track.setVolume(0.82f);
+                                  // 为整段果实 PCM 一次性预留缓冲，并在 play() 前完整写入。
+                                  // 这样第一枚果实时也不会因 AudioTrack 首次启动/缓冲欠载把开头或尾部截掉。
+                                  track = 创建流式短轨道(samples.length);
+                                  track.setVolume(0.72f);
+                                  int pos = 0;
+                                  while (pos < samples.length && !已释放 && 本次代次 == 播放代次) {
+                                      int wrote = track.write(samples, pos, samples.length - pos, AudioTrack.WRITE_BLOCKING);
+                                      if (wrote <= 0) throw new IllegalStateException("果实音效预缓冲失败:" + wrote);
+                                      pos += wrote;
+                                  }
+                                  if (pos != samples.length) throw new IllegalStateException("果实音效未完整写入");
+
                                   synchronized (程序化声音.this) {
                                       if (已释放 || 本次代次 != 播放代次) return;
                                       活动短音轨道.add(track);
                                       track.play();
+                                      已成功启动 = true;
                                   }
 
-                                  int pos = 0;
-                                  while (pos < samples.length && !已释放 && 本次代次 == 播放代次) {
-                                      int wrote = track.write(samples, pos, samples.length - pos, AudioTrack.WRITE_BLOCKING);
-                                      if (wrote <= 0) throw new IllegalStateException("果实音效写入失败:" + wrote);
-                                      pos += wrote;
+                                  // 不再用固定 sleep 猜播放时长，而是等待播放头真正走完整段 PCM。
+                                  long deadline = System.currentTimeMillis()
+                                          + samples.length * 1000L / 采样率 + 900L;
+                                  while (!已释放 && 本次代次 == 播放代次
+                                          && System.currentTimeMillis() < deadline) {
+                                      int played = track.getPlaybackHeadPosition();
+                                      if (played >= samples.length - 16) break;
+                                      Thread.sleep(18L);
                                   }
-                                  已成功启动 = pos > 0;
-                                  // 等 PCM 真正从扬声器播放结束后再释放，避免极短声音被截掉。
-                                  Thread.sleep(Math.max(260L, samples.length * 1000L / 采样率 + 140L));
+                                  Thread.sleep(70L);
                               } catch (Exception ignored) {
-                                  // 流式短音轨如果在某台设备上仍失败，至少用系统提示音保底，
-                                  // 不再出现“吃到果实完全无声音”的情况。
                                   if (!已成功启动 && !已释放 && 本次代次 == 播放代次) {
                                       播放果实备用提示音(实际类型);
                                   }
@@ -7604,6 +7724,16 @@ jobs:
                       } catch (RuntimeException ignored) {
                           释放短音效槽位();
                       }
+                  }
+
+                  synchronized void 暂停背景() {
+                      当前音乐音量 = 当前雨声音量 = 0f;
+                      星河音乐音量 = 0f;
+                      暂停循环轨道(音乐轨道);
+                      暂停循环轨道(雨声轨道);
+                      暂停循环轨道(星河音乐轨道);
+                      已应用音乐音量 = 已应用雨声音量 = 0f;
+                      已应用星河音量 = 0f;
                   }
 
                   synchronized void 暂停全部() {
@@ -7676,15 +7806,17 @@ jobs:
                       if (track != null) track.释放();
                   }
 
-                  private AudioTrack 创建流式短轨道() {
+                  private AudioTrack 创建流式短轨道(int sampleCount) {
                       int minBuffer = AudioTrack.getMinBufferSize(采样率,
                               AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
                       if (minBuffer <= 0) minBuffer = 2048;
+                      // 缓冲至少容纳整段短音效，保证可以先完整写入再启动播放。
+                      int bufferBytes = Math.max(minBuffer * 2, sampleCount * 2 + 2048);
                       AudioTrack track = new AudioTrack.Builder()
                               .setAudioAttributes(提示音音频属性)
                               .setAudioFormat(单声道音频格式)
                               .setTransferMode(AudioTrack.MODE_STREAM)
-                              .setBufferSizeInBytes(Math.max(minBuffer, 4096))
+                              .setBufferSizeInBytes(bufferBytes)
                               .build();
                       if (track.getState() != AudioTrack.STATE_INITIALIZED) {
                           try { track.release(); } catch (Exception ignored) { }
@@ -7838,7 +7970,7 @@ jobs:
                   }
           
                   private short[] 生成果实音效(int 类型) {
-                      float[] durations = {0.13f, 0.12f, 0.15f, 0.12f, 0.14f, 0.14f, 0.16f};
+                      float[] durations = {0.52f, 0.50f, 0.58f, 0.54f, 0.60f, 0.56f, 0.62f};
                       float duration = durations[限制整数(类型, 0, 6)];
                       int length = Math.max(1, (int) (采样率 * duration));
                       short[] out = new short[length];
@@ -7848,8 +7980,8 @@ jobs:
                       for (int i = 0; i < length; i++) {
                           float t = i / (float) 采样率;
                           float p = t / duration;
-                          float attack = Math.min(1f, p * 16f);
-                          float decay = (float) Math.pow(Math.max(0f, 1f - p), 2.2f);
+                          float attack = Math.min(1f, p * 22f);
+                          float decay = (float) Math.pow(Math.max(0f, 1f - p), 1.55f);
                           float env = attack * decay;
                           float startFreq;
                           float endFreq;
@@ -8261,7 +8393,7 @@ jobs:
                   if (冻结时间 > 0f) base *= 0.72f;
                   if (冲刺时间 > 0f) base *= 1.80f;
                   if (花鸟接管中 && 花鸟保护时间 > 0f) base *= 0.55f;
-                  return 限制(base, 0.60f, 2.25f);
+                  return 限制(base, 0.60f, 困难模式 ? 3.40f : 2.25f);
               }
           
               private float 平滑循环位置(float value, float range) {
@@ -8373,14 +8505,14 @@ jobs:
               }
           
               private void 校正可通行空间(障碍 p, int map) {
-                  float progress = 限制((难度倍率-1f)/3.2f,0f,1f), jump = 高*.558f*(1f-.20f*progress);
+                  float progress = 当前速度进度(), jump = 高*.558f*(1f-.20f*progress);
                   float gravity = 高*2.222f*(.99f+.12f*progress), needed = jump*jump/(2f*gravity)+高*.012f;
                   测量安全通道(p,map);
                   float missing = needed - p.安全下 + p.安全上;
                   if (missing > 0f) { 移动缺口(p,0f,missing/(map == 冰天雪地 ? .9f : 1f)); 测量安全通道(p,map); }
                   障碍 prev = 上次生成障碍;
                   if (prev != null) {
-                      float free = Math.max(0f,(p.x-prev.x-prev.宽度-小鸟半径*2f-宽*.05f)/(宽*.335f*Math.min(4.2f,难度倍率+.10f)));
+                      float free = Math.max(0f,(p.x-prev.x-prev.宽度-小鸟半径*2f-宽*.05f)/(宽*.335f*Math.min(当前最高速度(),难度倍率+.10f)));
                       float up = Math.min(高*.155f,高*.25f*free), down = Math.min(高*.155f,.325f*gravity*free*free);
                       float common = Math.min(needed,Math.min(prev.安全下-prev.安全上,p.安全下-p.安全上));
                       float dy = 限制(0f,prev.安全上+common-up-p.安全下,prev.安全下-common+down-p.安全上);
@@ -8443,7 +8575,7 @@ jobs:
               }
           
               private float 选择事件高度(float eta,float enemyRadius,float side) {
-                  float lo=高*.18f,hi=地面线-高*.12f,speed=宽*.335f*Math.min(4.2f,难度倍率+.03f);
+                  float lo=高*.18f,hi=地面线-高*.12f,speed=宽*.335f*Math.min(当前最高速度(),难度倍率+.03f);
                   float travel=speed*(eta-.57f*Math.min(冻结时间,eta));
                   if(障碍组.isEmpty())return Float.NaN;
                   障碍 last=障碍组.get(障碍组.size()-1);
