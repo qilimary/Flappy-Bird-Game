@@ -455,6 +455,7 @@ jobs:
               private final 程序化声音 声音系统;
               private final int[] 死亡方式计数 = new int[7];
               private final int[] 地图最高分 = new int[地图数量];
+              private final int[] 困难地图最高分 = new int[地图数量];
           
               private final ArrayList<障碍> 障碍组 = new ArrayList<>(10);
               private final ArrayList<果实> 果实组 = new ArrayList<>(12);
@@ -760,6 +761,7 @@ jobs:
                   }
                   for (int i = 0; i < 地图最高分.length; i++) {
                       地图最高分[i] = 存档.getInt("最高分_" + i, 0);
+                      困难地图最高分[i] = 存档.getInt("困难最高分_" + i, 0);
                   }
                   for (int i = 0; i < 死亡方式计数.length; i++) {
                       死亡方式计数[i] = 存档.getInt("成就进度_死亡方式_" + i, 0);
@@ -845,7 +847,7 @@ jobs:
                   加生命按钮.set(宽 * 0.632f, 控制Y - 宽 * 0.036f,
                           宽 * 0.700f, 控制Y + 宽 * 0.036f);
                   开始按钮.set(宽 * 0.14f, 高 * 0.775f, 宽 * 0.86f, 高 * 0.844f);
-                  困难模式按钮.set(宽 * 0.23f, 高 * 0.858f, 宽 * 0.77f, 高 * 0.905f);
+                  困难模式按钮.set(宽 * 0.34f, 高 * 0.858f, 宽 * 0.66f, 高 * 0.902f);
                   重来按钮.set(宽 * 0.14f, 高 * 0.66f, 宽 * 0.86f, 高 * 0.735f);
                   返回按钮.set(宽 * 0.14f, 高 * 0.755f, 宽 * 0.86f, 高 * 0.825f);
                   暂停按钮.set(宽 * 0.875f, 高 * 0.028f, 宽 * 0.965f, 高 * 0.073f);
@@ -986,7 +988,7 @@ jobs:
               private int 达到分数的地图数量(int 目标分数) {
                   int count = 0;
                   for (int i = 0; i < 地图数量; i++) {
-                      if (读取最高分(i) >= 目标分数) count++;
+                      if (读取普通最高分(i) >= 目标分数) count++;
                   }
                   return count;
               }
@@ -1479,8 +1481,12 @@ jobs:
                       难度倍率 = Math.min(4.2f, 难度倍率);
                   }
                   检查最高速度成就();
-                  // 两种模式都按各自速度上限的完成进度计算积分，避免困难模式积分失控。
-                  积分倍率 = Math.min(2.1f, 1f + 当前速度进度() * 1.1f);
+                  // 困难模式不仅速度成长更快，积分倍率也会更快拉升；普通模式保持原曲线。
+                  if (困难模式) {
+                      积分倍率 = Math.min(3.20f, 1f + 当前速度进度() * 2.20f);
+                  } else {
+                      积分倍率 = Math.min(2.10f, 1f + 当前速度进度() * 1.10f);
+                  }
                   累计时间分 += dt * 4f * 积分倍率 * 当前常规得分倍率();
                   更新环境相位(dt, true);
                   更新阴森古堡(dt);
@@ -2841,6 +2847,9 @@ jobs:
                       float 速度跳跃系数 = 1f - 0.20f * 速度进度;
                       小鸟速度Y = -高 * 0.558f * 速度跳跃系数;
                   }
+                  // 困难模式把主动跳跃的理论最高高度降低约 10%。
+                  // 抛体高度与初速度平方成正比，因此起跳速度乘 sqrt(0.90) ≈ 0.94868。
+                  if (困难模式) 小鸟速度Y *= 0.9486833f;
                   // 冻结果实期间明显压低主动起跳力度；配合较低重力后，实际跳跃高度约降低四成。
                   if (冰冻跳跃削弱时间 > 0f) 小鸟速度Y *= 0.64f;
                   if (中毒时间 > 0f) 小鸟速度Y *= 中毒跳跃倍率;
@@ -2868,15 +2877,20 @@ jobs:
                   if (设定生命 == 1) {
                       int 最高 = 读取最高分(当前地图);
                       if (分数 > 最高) {
-                          地图最高分[当前地图] = 分数;
-                          存档.edit().putInt("最高分_" + 当前地图, 分数).apply();
+                          if (困难模式) {
+                              困难地图最高分[当前地图] = 分数;
+                              存档.edit().putInt("困难最高分_" + 当前地图, 分数).apply();
+                          } else {
+                              地图最高分[当前地图] = 分数;
+                              存档.edit().putInt("最高分_" + 当前地图, 分数).apply();
+                          }
                       }
                   }
                   结束分数文本 = String.valueOf(分数);
                   结束时间文本 = 一位小数(经过秒数) + " 秒";
                   结束跨越文本 = 跨越障碍 + " 个";
                   结束速度文本 = 一位小数(难度倍率) + "×";
-                  结束最高分文本 = "本地图历史最高分  " + 读取最高分(当前地图)
+                  结束最高分文本 = (困难模式 ? "本地图困难最高分  " : "本地图历史最高分  ") + 读取最高分(当前地图)
                           + (设定生命 > 1 ? " · 多生命不计纪录" : "");
               }
           
@@ -3115,8 +3129,13 @@ jobs:
                   return (int) Math.floor(累计时间分 + 累计障碍分 + 奖励分);
               }
           
-              private int 读取最高分(int 地图) {
+              private int 读取普通最高分(int 地图) {
                   return 地图 >= 0 && 地图 < 地图最高分.length ? 地图最高分[地图] : 0;
+              }
+
+              private int 读取最高分(int 地图) {
+                  if (地图 < 0 || 地图 >= 地图最高分.length) return 0;
+                  return 困难模式 ? 困难地图最高分[地图] : 地图最高分[地图];
               }
           
               private void 更新粒子浮字烟花(float dt) {
@@ -6191,7 +6210,7 @@ jobs:
                   if (HUD最高分地图 != 当前地图 || HUD最高分缓存值 != 最高分) {
                       HUD最高分地图 = 当前地图;
                       HUD最高分缓存值 = 最高分;
-                      HUD最高分文本 = "本图最高分 " + 最高分;
+                      HUD最高分文本 = (困难模式 ? "困难最高分 " : "本图最高分 ") + 最高分;
                   }
               }
           
@@ -6334,7 +6353,7 @@ jobs:
                   if (菜单文字地图 != 当前地图 || 菜单最高分缓存值 != 最高分) {
                       菜单文字地图 = 当前地图;
                       菜单最高分缓存值 = 最高分;
-                      菜单最高分文本 = "最高分 " + 最高分;
+                      菜单最高分文本 = (困难模式 ? "困难最高分 " : "最高分 ") + 最高分;
                   }
                   if (菜单文字皮肤 != 当前皮肤序号) {
                       菜单文字皮肤 = 当前皮肤序号;
@@ -6441,9 +6460,9 @@ jobs:
                   c.drawRoundRect(困难模式按钮, 高 * 0.022f, 高 * 0.022f, 画笔);
                   配置描边(stroke, 宽 * 0.0028f);
                   c.drawRoundRect(困难模式按钮, 高 * 0.022f, 高 * 0.022f, 描边);
-                  文本(c, 困难模式 ? "困难模式：已开启" : "开启困难模式",
-                          困难模式按钮.centerX(), 困难模式按钮.centerY() + 宽 * 0.011f,
-                          宽 * 0.026f, Color.WHITE, Paint.Align.CENTER, true);
+                  文本(c, "困难模式",
+                          困难模式按钮.centerX(), 困难模式按钮.centerY() + 宽 * 0.010f,
+                          宽 * 0.0235f, Color.WHITE, Paint.Align.CENTER, true);
               }
 
               private void 绘制皮肤轮播(Canvas c) {
@@ -7314,12 +7333,18 @@ jobs:
 
               private void 切换困难模式() {
                   if (!已解锁困难模式()) return;
-                  困难模式 = !困难模式;
+                  boolean 即将开启 = !困难模式;
+                  困难模式 = 即将开启;
                   if (困难模式) 困难模式过渡 = 0f;
                   else 困难模式过渡 = 1f;
                   存档.edit().putBoolean("困难模式", 困难模式).apply();
-                  播放音效(困难模式 ? ToneGenerator.TONE_PROP_NACK : ToneGenerator.TONE_PROP_ACK, 75);
-                  提示文字 = 困难模式 ? "困难模式已开启 · 最高速度 8.0×" : "困难模式已关闭";
+                  // 只在进入困难模式时给一次确认音；恢复普通模式保持安静。
+                  if (困难模式) 播放音效(ToneGenerator.TONE_PROP_NACK, 75);
+                  // 模式切换后强制刷新分数文字，确保普通/困难纪录立即独立显示。
+                  菜单最高分缓存值 = Integer.MIN_VALUE;
+                  HUD最高分缓存值 = Integer.MIN_VALUE;
+                  HUD最高分地图 = -1;
+                  提示文字 = 困难模式 ? "困难模式已开启 · 最高速度 8.0×" : "已恢复普通模式";
                   提示时间 = 2.2f;
               }
           
@@ -7442,6 +7467,7 @@ jobs:
                   private volatile short[] 雷声音效缓存;
                   private volatile short[][] 烟花音效缓存;
                   private volatile short[][] 果实音效缓存;
+                  private volatile AudioTrack[] 果实预载轨道;
                   private volatile boolean 已释放;
                   private float 当前音乐音量;
                   private float 当前雨声音量;
@@ -7548,9 +7574,38 @@ jobs:
 
                   程序化声音() {
                       Thread prepare = new Thread(() -> {
+                          // 先准备果实短音效：它们体积很小，而且玩家开局后最先可能触发。
+                          // 不再让它们排在几十秒背景 PCM 的生成之后，避免第一枚果实来得太早时没有预载轨道。
+                          short[][] 果实采样 = null;
+                          AudioTrack[] 预载果实 = null;
+                          try {
+                              果实采样 = new short[7][];
+                              for (int i = 0; i < 果实采样.length; i++) 果实采样[i] = 生成果实音效(i);
+                              if (!已释放) {
+                                  预载果实 = new AudioTrack[果实采样.length];
+                                  for (int i = 0; i < 果实采样.length; i++) {
+                                      try {
+                                          预载果实[i] = 创建短轨道(果实采样[i]);
+                                          预载果实[i].setVolume(0.62f);
+                                      } catch (Exception ignored) {
+                                          预载果实[i] = null;
+                                      }
+                                  }
+                              }
+                          } catch (Exception ignored) { }
+
+                          synchronized (程序化声音.this) {
+                              if (已释放) {
+                                  释放果实预载轨道(预载果实);
+                                  return;
+                              }
+                              果实音效缓存 = 果实采样;
+                              果实预载轨道 = 预载果实;
+                          }
+
                           short[] 音乐采样 = null, 雨声采样 = null, 星河采样 = null;
                           short[] 雷声采样 = null;
-                          short[][] 烟花采样 = null, 果实采样 = null;
+                          short[][] 烟花采样 = null;
                           try { 音乐采样 = 生成舒缓音乐(); } catch (Exception ignored) { }
                           try { 雨声采样 = 生成绵延细雨(); } catch (Exception ignored) { }
                           try { 星河采样 = 生成主题音乐(true); } catch (Exception ignored) { }
@@ -7558,10 +7613,6 @@ jobs:
                           try {
                               烟花采样 = new short[4][];
                               for (int i = 0; i < 烟花采样.length; i++) 烟花采样[i] = 生成烟花音效(i);
-                          } catch (Exception ignored) { }
-                          try {
-                              果实采样 = new short[7][];
-                              for (int i = 0; i < 果实采样.length; i++) 果实采样[i] = 生成果实音效(i);
                           } catch (Exception ignored) { }
 
                           if (已释放) return;
@@ -7579,7 +7630,6 @@ jobs:
                               } else {
                                   雷声音效缓存 = 雷声采样;
                                   烟花音效缓存 = 烟花采样;
-                                  果实音效缓存 = 果实采样;
                                   音乐轨道 = music;
                                   雨声轨道 = rain;
                                   星河音乐轨道 = galaxy;
@@ -7638,51 +7688,60 @@ jobs:
                   }
 
                   void 播放果实音效(int 类型) {
-                      if (已释放 || !音效开启 || !申请短音效槽位()) return;
+                      if (已释放 || !音效开启) return;
                       final int 实际类型 = 限制整数(类型, 0, 6);
+
+                      // 果实是短音效，使用预先写好的 MODE_STATIC 音轨最稳。
+                      // 音轨在游戏启动前就已创建并保留，不再“边写边播”，也不会在 0.5 秒时被提前释放。
+                      AudioTrack[] preload = 果实预载轨道;
+                      AudioTrack ready = preload != null && 实际类型 < preload.length
+                              ? preload[实际类型] : null;
+                      if (ready != null) {
+                          synchronized (程序化声音.this) {
+                              try {
+                                  // 无论上一次是否已经播放完，都从头重新触发。
+                                  try { ready.stop(); } catch (Exception ignored) { }
+                                  try {
+                                      if (ready.reloadStaticData() != AudioTrack.SUCCESS)
+                                          ready.setPlaybackHeadPosition(0);
+                                  } catch (Exception ignored) {
+                                      try { ready.setPlaybackHeadPosition(0); } catch (Exception ignored2) { }
+                                  }
+                                  ready.setVolume(0.62f);
+                                  ready.play();
+                                  return;
+                              } catch (Exception ignored) {
+                                  // 极少数设备若复用静态轨道失败，再走下面的一次性静态轨道兜底。
+                              }
+                          }
+                      }
+
+                      if (!申请短音效槽位()) {
+                          播放果实备用提示音(实际类型);
+                          return;
+                      }
                       final int 本次代次 = 播放代次;
                       try {
                           短音效线程池.execute(() -> {
                               AudioTrack track = null;
-                              boolean 已成功启动 = false;
+                              boolean started = false;
                               try {
                                   short[][] cache = 果实音效缓存;
                                   short[] samples = cache == null ? null : cache[实际类型];
                                   if (samples == null) samples = 生成果实音效(实际类型);
-
-                                  // 为整段果实 PCM 一次性预留缓冲，并在 play() 前完整写入。
-                                  // 这样第一枚果实时也不会因 AudioTrack 首次启动/缓冲欠载把开头或尾部截掉。
-                                  track = 创建流式短轨道(samples.length);
-                                  track.setVolume(0.72f);
-                                  int pos = 0;
-                                  while (pos < samples.length && !已释放 && 本次代次 == 播放代次) {
-                                      int wrote = track.write(samples, pos, samples.length - pos, AudioTrack.WRITE_BLOCKING);
-                                      if (wrote <= 0) throw new IllegalStateException("果实音效预缓冲失败:" + wrote);
-                                      pos += wrote;
-                                  }
-                                  if (pos != samples.length) throw new IllegalStateException("果实音效未完整写入");
-
+                                  track = 创建短轨道(samples);
+                                  track.setVolume(0.62f);
                                   synchronized (程序化声音.this) {
                                       if (已释放 || 本次代次 != 播放代次) return;
                                       活动短音轨道.add(track);
                                       track.play();
-                                      已成功启动 = true;
+                                      started = true;
                                   }
-
-                                  // 不再用固定 sleep 猜播放时长，而是等待播放头真正走完整段 PCM。
-                                  long deadline = System.currentTimeMillis()
-                                          + samples.length * 1000L / 采样率 + 900L;
-                                  while (!已释放 && 本次代次 == 播放代次
-                                          && System.currentTimeMillis() < deadline) {
-                                      int played = track.getPlaybackHeadPosition();
-                                      if (played >= samples.length - 16) break;
-                                      Thread.sleep(18L);
-                                  }
-                                  Thread.sleep(70L);
+                                  // 留足首次启动延迟；静态 PCM 会完整保留，绝不按固定 0.5 秒强切。
+                                  Thread.sleep(Math.max(900L, samples.length * 1000L / 采样率 + 420L));
                               } catch (Exception ignored) {
-                                  if (!已成功启动 && !已释放 && 本次代次 == 播放代次) {
+                                  if (!started && !已释放 && 本次代次 == 播放代次)
                                       播放果实备用提示音(实际类型);
-                                  }
                               } finally {
                                   synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
                                   释放短轨道(track);
@@ -7739,6 +7798,7 @@ jobs:
                   synchronized void 暂停全部() {
                       播放代次++;
                       for (AudioTrack track : 活动短音轨道) 暂停短轨道(track);
+                      停止果实预载播放();
                       当前音乐音量 = 当前雨声音量 = 0f;
                       星河音乐音量 = 0f;
                       暂停循环轨道(音乐轨道);
@@ -7755,6 +7815,8 @@ jobs:
                       释放循环轨道(音乐轨道);
                       释放循环轨道(雨声轨道);
                       释放循环轨道(星河音乐轨道);
+                      释放果实预载轨道(果实预载轨道);
+                      果实预载轨道 = null;
                       音乐轨道 = 雨声轨道 = 星河音乐轨道 = null;
                       雷声音效缓存 = null;
                       烟花音效缓存 = null;
@@ -7804,6 +7866,21 @@ jobs:
 
                   private void 释放循环轨道(循环流音轨 track) {
                       if (track != null) track.释放();
+                  }
+
+                  private void 停止果实预载播放() {
+                      AudioTrack[] tracks = 果实预载轨道;
+                      if (tracks == null) return;
+                      for (AudioTrack track : tracks) {
+                          if (track == null) continue;
+                          try { track.stop(); } catch (Exception ignored) { }
+                          try { track.setPlaybackHeadPosition(0); } catch (Exception ignored) { }
+                      }
+                  }
+
+                  private void 释放果实预载轨道(AudioTrack[] tracks) {
+                      if (tracks == null) return;
+                      for (AudioTrack track : tracks) 释放短轨道(track);
                   }
 
                   private AudioTrack 创建流式短轨道(int sampleCount) {
