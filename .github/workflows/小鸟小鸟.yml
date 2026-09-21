@@ -7467,7 +7467,6 @@ jobs:
                   private volatile short[] 雷声音效缓存;
                   private volatile short[][] 烟花音效缓存;
                   private volatile short[][] 果实音效缓存;
-                  private volatile AudioTrack[] 果实预载轨道;
                   private volatile boolean 已释放;
                   private float 当前音乐音量;
                   private float 当前雨声音量;
@@ -7573,21 +7572,15 @@ jobs:
                   }
 
                   程序化声音() {
-                      // 果实音效很短，直接同步准备，保证开局第一枚果实也已经可播放。
-                      // 保留早期版本每种果实自己的 PCM 音色，不再用系统提示音替代。
+                      // 果实音效沿用早期稳定方案：只缓存 PCM，每次吃到果实时新建独立静态音轨。
+                      // 不复用 MODE_STATIC AudioTrack，避免 Activity/窗口暂停后部分设备上的静态轨道失效。
                       short[][] 果实采样 = new short[7][];
-                      AudioTrack[] 预载果实 = new AudioTrack[7];
                       for (int i = 0; i < 果实采样.length; i++) {
-                          try {
-                              果实采样[i] = 生成果实音效(i);
-                              预载果实[i] = 创建短轨道(果实采样[i]);
-                              预载果实[i].setVolume(0.52f);
-                          } catch (Exception ignored) {
-                              预载果实[i] = null;
-                          }
+                          try { 果实采样[i] = 生成果实音效(i); }
+                          catch (Exception ignored) { 果实采样[i] = null; }
                       }
                       果实音效缓存 = 果实采样;
-                      果实预载轨道 = 预载果实;
+                      预热短音效通道();
 
                       Thread prepare = new Thread(() -> {
                           short[] 音乐采样 = null, 雨声采样 = null, 星河采样 = null;
@@ -7676,32 +7669,8 @@ jobs:
                   }
 
                   void 播放果实音效(int 类型) {
-                      if (已释放 || !音效开启) return;
+                      if (已释放 || !音效开启 || !申请短音效槽位()) return;
                       final int 实际类型 = 限制整数(类型, 0, 6);
-
-                      // 优先复用启动时已经写入完成的 MODE_STATIC 音轨。
-                      AudioTrack[] preload = 果实预载轨道;
-                      AudioTrack ready = preload != null && 实际类型 < preload.length
-                              ? preload[实际类型] : null;
-                      if (ready != null) {
-                          synchronized (程序化声音.this) {
-                              try {
-                                  try {
-                                      int state = ready.getPlayState();
-                                      if (state == AudioTrack.PLAYSTATE_PLAYING
-                                              || state == AudioTrack.PLAYSTATE_PAUSED) ready.stop();
-                                  } catch (Exception ignored) { }
-                                  try { ready.setPlaybackHeadPosition(0); } catch (Exception ignored) { }
-                                  ready.setVolume(0.52f);
-                                  ready.play();
-                                  return;
-                              } catch (Exception ignored) {
-                                  // 个别设备若不能稳定复用静态轨道，再临时创建同一份原始 PCM。
-                              }
-                          }
-                      }
-
-                      if (!申请短音效槽位()) return;
                       final int 本次代次 = 播放代次;
                       try {
                           短音效线程池.execute(() -> {
@@ -7710,17 +7679,30 @@ jobs:
                                   short[][] cache = 果实音效缓存;
                                   short[] samples = cache == null ? null : cache[实际类型];
                                   if (samples == null) samples = 生成果实音效(实际类型);
-                                  track = 创建短轨道(samples);
-                                  track.setVolume(0.52f);
+
+                                  // 完全回到早期构建的思路：每次都创建一条只属于本次果实的 MODE_STATIC 音轨。
+                                  // 这样不会受到预载轨道被暂停/stop 后无法可靠复播的问题影响。
+                                  track = 创建果实轨道(samples);
+                                  track.setVolume(0.50f);
                                   synchronized (程序化声音.this) {
                                       if (已释放 || 本次代次 != 播放代次) return;
                                       活动短音轨道.add(track);
                                       track.play();
                                   }
-                                  Thread.sleep(Math.max(260L,
-                                          samples.length * 1000L / 采样率 + 110L));
+
+                                  // 不再用固定 190ms 粗暴截断；等待播放头真正走完整段 PCM。
+                                  long deadline = System.nanoTime()
+                                          + (long) ((samples.length / (double) 采样率 + 0.32) * 1_000_000_000L);
+                                  while (!已释放 && 本次代次 == 播放代次
+                                          && System.nanoTime() < deadline) {
+                                      try {
+                                          if (track.getPlaybackHeadPosition() >= samples.length) break;
+                                      } catch (Exception ignored) { }
+                                      try { Thread.sleep(8L); }
+                                      catch (InterruptedException interrupted) { break; }
+                                  }
                               } catch (Exception ignored) {
-                                  // 失败时保持安静，不换成另一套系统提示音。
+                                  // 保持原始果实音色；失败时不切换成系统 ToneGenerator 的另一套声音。
                               } finally {
                                   synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
                                   释放短轨道(track);
@@ -7776,7 +7758,6 @@ jobs:
                   synchronized void 暂停全部() {
                       播放代次++;
                       for (AudioTrack track : 活动短音轨道) 暂停短轨道(track);
-                      停止果实预载播放();
                       当前音乐音量 = 当前雨声音量 = 0f;
                       星河音乐音量 = 0f;
                       暂停循环轨道(音乐轨道);
@@ -7793,8 +7774,6 @@ jobs:
                       释放循环轨道(音乐轨道);
                       释放循环轨道(雨声轨道);
                       释放循环轨道(星河音乐轨道);
-                      释放果实预载轨道(果实预载轨道);
-                      果实预载轨道 = null;
                       音乐轨道 = 雨声轨道 = 星河音乐轨道 = null;
                       雷声音效缓存 = null;
                       烟花音效缓存 = null;
@@ -7846,19 +7825,54 @@ jobs:
                       if (track != null) track.释放();
                   }
 
-                  private void 停止果实预载播放() {
-                      AudioTrack[] tracks = 果实预载轨道;
-                      if (tracks == null) return;
-                      for (AudioTrack track : tracks) {
-                          if (track == null) continue;
-                          try { track.stop(); } catch (Exception ignored) { }
-                          try { track.setPlaybackHeadPosition(0); } catch (Exception ignored) { }
-                      }
+                  private void 预热短音效通道() {
+                      try {
+                          // 仅用于让系统音频输出链路提前启动，音量为 0，用户不会听到。
+                          final short[] silence = new short[Math.max(320, 采样率 / 20)];
+                          final AudioTrack warm = new AudioTrack.Builder()
+                                  .setAudioAttributes(提示音音频属性)
+                                  .setAudioFormat(单声道音频格式)
+                                  .setTransferMode(AudioTrack.MODE_STATIC)
+                                  .setBufferSizeInBytes(silence.length * 2)
+                                  .build();
+                          if (warm.getState() != AudioTrack.STATE_INITIALIZED) {
+                              try { warm.release(); } catch (Exception ignored) { }
+                              return;
+                          }
+                          if (warm.write(silence, 0, silence.length) != silence.length) {
+                              try { warm.release(); } catch (Exception ignored) { }
+                              return;
+                          }
+                          warm.setVolume(0f);
+                          warm.play();
+                          Thread cleanup = new Thread(() -> {
+                              try { Thread.sleep(90L); } catch (InterruptedException ignored) { }
+                              try { warm.stop(); } catch (Exception ignored) { }
+                              try { warm.release(); } catch (Exception ignored) { }
+                          }, "小鸟小鸟-音频预热");
+                          cleanup.setDaemon(true);
+                          cleanup.start();
+                      } catch (Exception ignored) { }
                   }
 
-                  private void 释放果实预载轨道(AudioTrack[] tracks) {
-                      if (tracks == null) return;
-                      for (AudioTrack track : tracks) 释放短轨道(track);
+                  private AudioTrack 创建果实轨道(short[] samples) {
+                      AudioTrack track = new AudioTrack.Builder()
+                              .setAudioAttributes(提示音音频属性)
+                              .setAudioFormat(单声道音频格式)
+                              .setTransferMode(AudioTrack.MODE_STATIC)
+                              // 与早期可正常工作的构建一致：静态缓冲区严格等于实际 PCM 长度。
+                              .setBufferSizeInBytes(samples.length * 2)
+                              .build();
+                      try {
+                          if (track.getState() != AudioTrack.STATE_INITIALIZED)
+                              throw new IllegalStateException("果实音轨初始化未完成");
+                          int wrote = track.write(samples, 0, samples.length);
+                          if (wrote != samples.length) throw new IllegalStateException("果实音轨写入不完整");
+                          return track;
+                      } catch (RuntimeException error) {
+                          释放短轨道(track);
+                          throw error;
+                      }
                   }
 
                   private AudioTrack 创建短轨道(short[] samples) {
@@ -7992,19 +8006,15 @@ jobs:
                   }
           
                   private short[] 生成果实音效(int 类型) {
-                      // 恢复早期版本的 7 种果实音色和包络；首尾只补极短静音，防止部分设备吞掉起音或尾音。
                       float[] durations = {0.13f, 0.12f, 0.15f, 0.12f, 0.14f, 0.14f, 0.16f};
                       float duration = durations[限制整数(类型, 0, 6)];
-                      int 可听长度 = Math.max(1, (int) (采样率 * duration));
-                      int 前静音 = (int) (采样率 * 0.035f);
-                      int 后静音 = (int) (采样率 * 0.030f);
-                      short[] out = new short[前静音 + 可听长度 + 后静音];
+                      int length = Math.max(1, (int) (采样率 * duration));
+                      short[] out = new short[length];
                       Random noise = new Random(7411L + 类型 * 983L);
                       double phase = 0.0;
                       double phase2 = 0.0;
-                      for (int j = 0; j < 可听长度; j++) {
-                          int i = 前静音 + j;
-                          float t = j / (float) 采样率;
+                      for (int i = 0; i < length; i++) {
+                          float t = i / (float) 采样率;
                           float p = t / duration;
                           float attack = Math.min(1f, p * 16f);
                           float decay = (float) Math.pow(Math.max(0f, 1f - p), 2.2f);
@@ -8021,7 +8031,7 @@ jobs:
                                   startFreq = p < 0.36f ? 880f : (p < 0.68f ? 1320f : 1760f);
                                   endFreq = startFreq; break;
                               case 随机果实:
-                                  startFreq = 620f + (j / Math.max(1, 可听长度 / 4) % 2) * 620f;
+                                  startFreq = 620f + (i / Math.max(1, length / 4) % 2) * 620f;
                                   endFreq = startFreq; break;
                               case 花朵果实:
                                   startFreq = 660f; endFreq = 990f; break;
