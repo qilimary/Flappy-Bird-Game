@@ -376,16 +376,16 @@ jobs:
                       0xFF397F4C, 0xFF246E47, 0xFF7D5A36, 0xFF758C82
               };
               private static final int[] 地图卡顶色 = {
-                      0xF04FAFD0, 0xF06E7780, 0xF05A9FC1, 0xF0103B31,
-                      0xF081B36D, 0xF08B2336, 0xF02D357D, 0xD94A5261
+                      0xFF63C8E9, 0xFF818D98, 0xFF74BDE0, 0xFF195B49,
+                      0xFF9ACC82, 0xFFAD354D, 0xFF414A9F, 0xF05C6678
               };
               private static final int[] 地图卡底色 = {
-                      0xF07DD16A, 0xF03D4E5A, 0xF0D6F6FF, 0xF007201C,
-                      0xF0F3B0C9, 0xF0261022, 0xF0673F91, 0xD9252B35
+                      0xFF94E27D, 0xFF526774, 0xFFE5FAFF, 0xFF0E3D33,
+                      0xFFF9C0D6, 0xFF45192F, 0xFF8055AD, 0xF038404D
               };
               private static final int[] 穿越融合色 = {
-                      0xF04FAFD0, 0xF06E7780, 0xF05A9FC1, 0xF0103B31,
-                      0xF081B36D, 0xF08B2336, 0xF02D357D, 0xF04A5261
+                      0xFF63C8E9, 0xFF818D98, 0xFF74BDE0, 0xFF195B49,
+                      0xFF9ACC82, 0xFFAD354D, 0xFF414A9F, 0xFF5C6678
               };
               private static final int[] 穿越图标环色 = {
                       0xFF72D86B, 0xFF9EEBFF, 0xFFFF9BC8, 0xFFFFD36A,
@@ -6432,7 +6432,7 @@ jobs:
                   准备填充();画笔.setShader(map==穿越&&!unknown&&穿越融合渐变缓存!=null?穿越融合渐变缓存:地图卡渐变缓存[map]);
                   c.drawRoundRect(r,radius,radius,画笔);清除着色器();
                   c.save();路径.reset();路径.addRoundRect(r,radius,radius,Path.Direction.CW);c.clipPath(路径);
-                  配置渐变(0,r.top,0,r.bottom,0x05233451,0xB5081630);c.drawRect(r,画笔);清除着色器();
+                  配置渐变(0,r.top,0,r.bottom,0x02233451,0x70081630);c.drawRect(r,画笔);清除着色器();
                   // 去掉普通地图卡片右侧的“山形”装饰；星河/终章原有圆形星点保留。
                   if(map==星河宇宙 || unknown) {
                       纯色(unknown?0x163E5977:0x1CE9FAFF);
@@ -7565,7 +7565,7 @@ jobs:
                                   }
                               } finally {
                                   synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
-                                  释放短音轨道(track);
+                                  释放短轨道(track);
                                   释放短音效槽位();
                               }
                           });
