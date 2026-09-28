@@ -88,8 +88,8 @@ jobs:
                   applicationId "com.qili.fruitflight"
                   minSdk 23
                   targetSdk 35
-                  versionCode 16
-                  versionName "16.0"
+                  versionCode 17
+                  versionName "17.0"
               }
 
               compileOptions {
@@ -171,6 +171,7 @@ jobs:
           import android.content.Context;
           import android.content.SharedPreferences;
           import android.graphics.Canvas;
+          import android.graphics.Bitmap;
           import android.graphics.Color;
           import android.graphics.LinearGradient;
           import android.graphics.Matrix;
@@ -370,7 +371,7 @@ jobs:
                       0x00FFD889, 0x66FFB96C, 0xCCFFF2BA
               };
               private static final float[] 特殊流星渐变位置 = {0f, 0.58f, 1f};
-              private static final float[] 极光渐变位置 = {0f, 0.24f, 0.52f, 0.78f, 1f};
+              private static final float[] 极光渐变位置 = {0f, 0.25f, 0.65f, 0.90f, 1f};
               private static final float[] 山峰雾渐变位置 = {0f, 0.18f, 0.50f, 0.82f, 1f};
               private static final int[] 花境藤色 = {
                       0xFF397F4C, 0xFF246E47, 0xFF7D5A36, 0xFF758C82
@@ -435,8 +436,12 @@ jobs:
               private LinearGradient 穿越融合渐变缓存;
               private RadialGradient 皮肤选择光晕缓存;
               private final float[] HSV缓存 = new float[3];
-              private final float[] 极光Y缓存 = new float[5];
-              private final int[] 极光颜色缓存 = new int[5];
+              private Bitmap 极光纹理;
+              private final float[] 极光网格缓存 = new float[49 * 2 * 2];
+              private final int[] 极光网格颜色 = new int[49 * 2];
+              private static final int[] 极光帘幕颜色 = {
+                      0x00AA80D0, 0x08769AD0, 0x3043D5A9, 0x785FFFB0, 0x005FFFB0
+              };
               private final float[] 山峰雾Y缓存 = new float[5];
               private final int[] 山峰雾颜色缓存 = new int[5];
               private final int[] 动态四阶渐变缓存 = new int[4];
@@ -1264,6 +1269,8 @@ jobs:
                   缺口高 *= 0.90f;
                   缺口高 *= 0.95f;
                   缺口高 *= 0.85f;
+                  // 名义通道再收窄 3%；后续仍按鸟体、冰刺、雪崩和相邻障碍校正安全空间。
+                  缺口高 *= 0.97f;
                   // 冰刺加入真实碰撞后，冰雪地图把原始管道缺口放宽 20%。
                   // 刺尖仍会占据其中一部分，所以实际可通行空间只比旧版略窄，整体难度小幅提高。
                   if (有效地图 == 冰天雪地) 缺口高 *= 1.20f;
@@ -3478,22 +3485,10 @@ jobs:
           
               private void 绘制冰雪背景(Canvas c) {
                   渐变矩形(c, 0, 0, 宽, 高, 0xFF163B68, 0xFFD9F7FF, true);
-                  c.save();
-                  // 扩大极光至天空上半部，并用更宽、更低透明度的层叠渐变自然融合。
-                  c.clipRect(0, 0, 宽, 高 * 0.50f);
-                  设置径向渐变(宽 * 0.52f, 高 * 0.18f, 宽 * 0.58f,
-                          0x284FFFC8, 0x004FFFC8);
-                  c.drawCircle(宽 * 0.52f, 高 * 0.18f, 宽 * 0.58f, 画笔);
-                  清除着色器();
-                  绘制极光带(c, 高 * 0.090f, 高 * 0.110f, 0.36f,
-                          0x001CFFD2, 0x5548E2C2, 0x004B8FFF);
-                  绘制极光带(c, 高 * 0.175f, 高 * 0.135f, 1.75f,
-                          0x002EDDDD, 0x3F6FC6FF, 0x005A7CFF);
-                  绘制极光带(c, 高 * 0.045f, 高 * 0.082f, 3.10f,
-                          0x0064FFD8, 0x357CD9FF, 0x006B68FF);
-                  绘制极光带(c, 高 * 0.255f, 高 * 0.090f, 4.25f,
-                          0x0048FFD0, 0x2E8A7BFF, 0x006351FF);
-                  c.restore();
+                  // 明亮下缘向高空消散，三层帘幕错相缓慢流动；不裁出水平硬边。
+                  绘制极光带(c, 高 * 0.205f, 高 * 0.170f, 0.36f, 0.76f);
+                  绘制极光带(c, 高 * 0.305f, 高 * 0.220f, 2.15f, 0.90f);
+                  绘制极光带(c, 高 * 0.385f, 高 * 0.160f, 4.30f, 0.44f);
           
                   绘制雪山层(c, 高 * 0.60f, 0xFF88B7D0, 0xFFDDF5FF, 0.016f);
                   绘制雪山层(c, 高 * 0.76f, 0xFF537E9A, 0xFFF4FCFF, 0.038f);
@@ -4572,45 +4567,56 @@ jobs:
                   }
               }
           
-              private void 绘制极光带(Canvas c, float baseY, float thickness,
-                                   float phase, int leftColor, int centerColor, int rightColor) {
-                  float x0 = -宽 * 0.15f;
-                  float step = 宽 * 0.325f;
-                  float[] ys = 极光Y缓存;
-                  for (int i = 0; i < ys.length; i++) {
-                      ys[i] = baseY + 高 * 0.038f
-                              * (float) Math.sin(动画时间 * 0.17f + phase + i * 0.82f)
-                              + 高 * 0.012f * (float) Math.sin(动画时间 * 0.31f + i * 1.37f);
+              private void 绘制极光带(Canvas c, float baseY, float height,
+                                   float phase, float opacity) {
+                  if (极光纹理 == null) {
+                      // 只生成一次约 96KiB 的柔和光丝纹理；避免逐帧创建渐变或模糊大位图。
+                      int tw = 192, th = 128;
+                      int[] pixels = new int[tw * th];
+                      for (int y = 0; y < th; y++) {
+                          float v = y / (float) (th - 1);
+                          int band = 0;
+                          while (band < 3 && v > 极光渐变位置[band + 1]) band++;
+                          float mix = (v - 极光渐变位置[band])
+                                  / (极光渐变位置[band + 1] - 极光渐变位置[band]);
+                          int color = 混色(极光帘幕颜色[band], 极光帘幕颜色[band + 1], 平滑步(mix));
+                          for (int x = 0; x < tw; x++) {
+                              float filament = 0.67f + 0.18f * (float) Math.sin(x * 1.73f + v * 1.2f)
+                                      + 0.10f * (float) Math.sin(x * 0.61f - v * 2f)
+                                      + 0.05f * (float) Math.sin(x * 2.91f);
+                              pixels[y * tw + x] = (color & 0x00ffffff)
+                                      | (Math.round(Color.alpha(color) * filament) << 24);
+                          }
+                      }
+                      极光纹理 = Bitmap.createBitmap(pixels, tw, th, Bitmap.Config.ARGB_8888);
                   }
-                  路径.reset();
-                  路径.moveTo(x0, ys[0]);
-                  for (int i = 0; i < 4; i++) {
-                      float xa = x0 + i * step;
-                      float xb = xa + step;
-                      路径.cubicTo(xa + step * 0.34f, ys[i],
-                              xb - step * 0.34f, ys[i + 1], xb, ys[i + 1]);
+                  float time = 背景时间 * 0.12f;
+                  float breath = opacity * (0.83f + 0.17f * (float) Math.sin(time * 0.73f + phase));
+                  for (int i = 0; i < 49; i++) {
+                      float u = i / 48f;
+                      float x = 宽 * (-0.12f + u * 1.24f);
+                      // 弧线与褶皱错相缓慢流动，所有光丝随曲面一起移动。
+                      float bottom = baseY + 高 * (0.029f * (float) Math.sin(u * 5.1f + time + phase)
+                              + 0.013f * (float) Math.sin(u * 11.3f - time * 0.67f + phase * 1.7f)
+                              + 0.0035f * (float) Math.sin(u * 29f + time * 0.42f + phase));
+                      float h = height * (0.76f
+                              + 0.17f * (float) Math.sin(u * 7.8f - time * 0.53f + phase)
+                              + 0.07f * (float) Math.sin(u * 19f + time * 0.35f));
+                      float density = 0.70f + 0.22f * (float) Math.sin(u * 9.3f - time * 0.81f + phase)
+                              + 0.08f * (float) Math.sin(u * 24f + time * 0.47f);
+                      极光网格缓存[i * 2] = x - 宽 * 0.014f;
+                      极光网格缓存[i * 2 + 1] = bottom - h;
+                      极光网格缓存[(i + 49) * 2] = x;
+                      极光网格缓存[(i + 49) * 2 + 1] = bottom;
+                      int color = Color.argb(Math.round(255f * breath * density), 255, 255, 255);
+                      极光网格颜色[i] = 极光网格颜色[i + 49] = color;
                   }
-                  for (int i = 3; i >= 0; i--) {
-                      float xa = x0 + (i + 1) * step;
-                      float xb = xa - step;
-                      float ya = ys[i + 1] + thickness
-                              * (0.82f + 0.18f * (float) Math.sin(动画时间 * 0.22f + i));
-                      float yb = ys[i] + thickness
-                              * (0.82f + 0.18f * (float) Math.sin(动画时间 * 0.22f + i - 1));
-                      if (i == 3) 路径.lineTo(xa, ya);
-                      路径.cubicTo(xa - step * 0.34f, ya,
-                              xb + step * 0.34f, yb, xb, yb);
-                  }
-                  路径.close();
-                  极光颜色缓存[0] = leftColor;
-                  极光颜色缓存[1] = 混色(leftColor, centerColor, 0.58f);
-                  极光颜色缓存[2] = centerColor;
-                  极光颜色缓存[3] = 混色(centerColor, rightColor, 0.58f);
-                  极光颜色缓存[4] = rightColor;
-                  配置多色渐变(0, baseY, 宽, baseY + thickness,
-                          极光颜色缓存, 极光渐变位置);
-                  c.drawPath(路径, 画笔);
-                  清除着色器();
+                  boolean oldFilter = 画笔.isFilterBitmap();
+                  准备填充();
+                  画笔.setFilterBitmap(true);
+                  // API 18 起支持带顶点颜色的硬件网格，本项目最低 API 23；每层仅一次绘制。
+                  c.drawBitmapMesh(极光纹理, 48, 1, 极光网格缓存, 0, 极光网格颜色, 0, 画笔);
+                  画笔.setFilterBitmap(oldFilter);
               }
           
               private void 绘制雨(Canvas c) {
@@ -7438,7 +7444,7 @@ jobs:
           
               private class 程序化声音 {
                   private static final int 采样率 = 16000;
-                  private final ExecutorService 短音效线程池 = Executors.newFixedThreadPool(3,
+                  private final ExecutorService 短音效线程池 = Executors.newFixedThreadPool(4,
                           runnable -> {
                               Thread thread = new Thread(runnable, "小鸟小鸟-短音效");
                               thread.setDaemon(true);
@@ -7473,7 +7479,8 @@ jobs:
                   private float 已应用音乐音量 = -1f;
                   private float 已应用雨声音量 = -1f;
                   private int 活动短音效数;
-                  private final ArrayList<AudioTrack> 活动短音轨道 = new ArrayList<>(3);
+                  private int 活动果实音效数;
+                  private final ArrayList<AudioTrack> 活动短音轨道 = new ArrayList<>(4);
                   private volatile int 播放代次;
 
                   private final class 循环流音轨 {
@@ -7572,8 +7579,7 @@ jobs:
                   }
 
                   程序化声音() {
-                      // 果实音效沿用早期稳定方案：只缓存 PCM，每次吃到果实时新建独立静态音轨。
-                      // 不复用 MODE_STATIC AudioTrack，避免 Activity/窗口暂停后部分设备上的静态轨道失效。
+                      // 缓存完整 PCM；每次使用新轨道，暂停/恢复后不复用失效的播放状态。
                       short[][] 果实采样 = new short[7][];
                       for (int i = 0; i < 果实采样.length; i++) {
                           try { 果实采样[i] = 生成果实音效(i); }
@@ -7638,114 +7644,95 @@ jobs:
                       已应用星河音量 = 更新循环轨道(星河音乐轨道, 星河音乐音量, 已应用星河音量);
                   }
 
-                  void 播放雷声() {
-                      if (已释放 || !音效开启 || !申请短音效槽位()) return;
-                      final int 本次代次 = 播放代次;
+                  void 播放雷声() { 提交短音效(0, 0); }
+
+                  void 播放果实音效(int 类型) { 提交短音效(1, 限制整数(类型, 0, 6)); }
+
+                  void 播放烟花音效(int 类型) { 提交短音效(2, 限制整数(类型, 0, 3)); }
+
+                  private void 提交短音效(int 类别, int 类型) {
+                      final boolean 是果实 = 类别 == 1;
+                      final int 本次代次;
+                      synchronized (this) {
+                          if (已释放 || !音效开启 || !申请短音效槽位(是果实)) return;
+                          本次代次 = 播放代次;
+                      }
                       try {
                           短音效线程池.execute(() -> {
-                              AudioTrack track = null;
                               try {
-                                  short[] samples = 雷声音效缓存;
-                                  if (samples == null) samples = 生成雷声();
-                                  track = 创建短轨道(samples);
-                                  track.setVolume(0.56f);
-                                  synchronized (程序化声音.this) {
-                                      if (已释放 || 本次代次 != 播放代次) return;
-                                      活动短音轨道.add(track);
-                                      track.play();
+                                  if (!本次播放有效(本次代次)) return;
+                                  short[] samples;
+                                  float volume;
+                                  if (是果实) {
+                                      short[][] cache = 果实音效缓存;
+                                      samples = cache == null ? null : cache[类型];
+                                      if (samples == null) samples = 生成果实音效(类型);
+                                      volume = 0.62f;
+                                  } else if (类别 == 0) {
+                                      samples = 雷声音效缓存;
+                                      if (samples == null) samples = 生成雷声();
+                                      volume = 0.56f;
+                                  } else {
+                                      short[][] cache = 烟花音效缓存;
+                                      samples = cache == null ? null : cache[类型];
+                                      if (samples == null) samples = 生成烟花音效(类型);
+                                      volume = 类型 == 3 ? 0.52f : 0.43f;
                                   }
-                                  Thread.sleep(Math.max(2400L, samples.length * 1000L / 采样率 + 160L));
-                              } catch (Exception ignored) {
+                                  播放完整短音效(samples, volume, 本次代次);
+                              } catch (InterruptedException stopped) {
+                                  Thread.currentThread().interrupt();
+                              } catch (RuntimeException unavailable) {
+                                  if (是果实 && 本次播放有效(本次代次)) {
+                                      // 提示音在主线程触发，避免与设置开关/Activity 销毁竞态。
+                                      GameView.this.post(() -> {
+                                          if (本次播放有效(本次代次)) 播放果实备用提示音(类型);
+                                      });
+                                  }
                               } finally {
-                                  synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
-                                  释放短轨道(track);
-                                  释放短音效槽位();
+                                  释放短音效槽位(是果实);
                               }
                           });
-                      } catch (RuntimeException ignored) {
-                          释放短音效槽位();
+                      } catch (RuntimeException rejected) {
+                          释放短音效槽位(是果实);
                       }
                   }
 
-                  void 播放果实音效(int 类型) {
-                      if (已释放 || !音效开启 || !申请短音效槽位()) return;
-                      final int 实际类型 = 限制整数(类型, 0, 6);
-                      final int 本次代次 = 播放代次;
-                      try {
-                          短音效线程池.execute(() -> {
-                              AudioTrack track = null;
-                              boolean 已成功启动 = false;
-                              try {
-                                  short[][] cache = 果实音效缓存;
-                                  short[] samples = cache == null ? null : cache[实际类型];
-                                  if (samples == null) samples = 生成果实音效(实际类型);
-
-                                  // 恢复到 2026-09-21 03:44 那个“果实确实能出声”的构建路径：
-                                  // 果实使用独立 MODE_STREAM AudioTrack，先启动轨道，再阻塞写入整段 PCM。
-                                  track = 创建流式短轨道();
-                                  track.setVolume(0.62f);
-                                  synchronized (程序化声音.this) {
-                                      if (已释放 || 本次代次 != 播放代次) return;
-                                      活动短音轨道.add(track);
-                                      track.play();
-                                  }
-
-                                  int pos = 0;
-                                  while (pos < samples.length && !已释放 && 本次代次 == 播放代次) {
-                                      int wrote = track.write(samples, pos, samples.length - pos,
-                                              AudioTrack.WRITE_BLOCKING);
-                                      if (wrote <= 0) throw new IllegalStateException("果实音效写入失败:" + wrote);
-                                      pos += wrote;
-                                  }
-                                  已成功启动 = pos > 0;
-                                  // 沿用当时可正常发声版本的释放节奏，避免再次换成静态轨道后完全无声。
-                                  Thread.sleep(Math.max(260L,
-                                          samples.length * 1000L / 采样率 + 140L));
-                              } catch (Exception ignored) {
-                                  // 只在流式音轨完全启动失败时使用系统提示音兜底，正常情况下仍是原来的果实 PCM。
-                                  if (!已成功启动 && !已释放 && 本次代次 == 播放代次) {
-                                      播放果实备用提示音(实际类型);
-                                  }
-                              } finally {
-                                  synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
-                                  释放短轨道(track);
-                                  释放短音效槽位();
-                              }
-                          });
-                      } catch (RuntimeException ignored) {
-                          释放短音效槽位();
-                          播放果实备用提示音(实际类型);
-                      }
+                  private boolean 本次播放有效(int generation) {
+                      return !已释放 && generation == 播放代次 && !Thread.currentThread().isInterrupted();
                   }
 
-                  void 播放烟花音效(int 类型) {
-                      if (已释放 || !音效开启 || !申请短音效槽位()) return;
-                      final int 实际类型 = 限制整数(类型, 0, 3);
-                      final int 本次代次 = 播放代次;
+                  private void 播放完整短音效(short[] samples, float volume, int generation)
+                          throws InterruptedException {
+                      AudioTrack track = null;
                       try {
-                          短音效线程池.execute(() -> {
-                              AudioTrack track = null;
-                              try {
-                                  short[][] cache = 烟花音效缓存;
-                                  short[] samples = cache == null ? null : cache[实际类型];
-                                  if (samples == null) samples = 生成烟花音效(实际类型);
-                                  track = 创建短轨道(samples);
-                                  track.setVolume(实际类型 == 3 ? 0.52f : 0.43f);
-                                  synchronized (程序化声音.this) {
-                                      if (已释放 || 本次代次 != 播放代次) return;
-                                      活动短音轨道.add(track);
-                                      track.play();
-                                  }
-                                  Thread.sleep(Math.max(1500L, samples.length * 1000L / 采样率 + 180L));
-                              } catch (Exception ignored) {
-                              } finally {
-                                  synchronized (程序化声音.this) { 活动短音轨道.remove(track); }
-                                  释放短轨道(track);
-                                  释放短音效槽位();
+                          if (!本次播放有效(generation)) return;
+                          try {
+                              // 短音整段预装，首次播放也无需边播放边等待填充。
+                              track = 创建短轨道(samples);
+                          } catch (RuntimeException staticUnavailable) {
+                              // 个别设备静态轨道不可用时，使用已预填充的流式轨道。
+                              track = 创建流式短轨道(samples);
+                          }
+                          track.setVolume(volume);
+                          synchronized (this) {
+                              if (!本次播放有效(generation)) return;
+                              活动短音轨道.add(track);
+                              track.play();
+                          }
+                          // 以实际播放帧数为准，冷启动延迟不会吃掉音效尾部；超时只防止设备挂死。
+                          long deadline = System.nanoTime() + (samples.length * 1000L / 采样率 + 3000L) * 1000000L;
+                          while (本次播放有效(generation)) {
+                              long played = track.getPlaybackHeadPosition() & 0xffffffffL;
+                              if (played >= samples.length) return;
+                              if (System.nanoTime() >= deadline) {
+                                  if (played == 0) throw new IllegalStateException("短音轨未开始播放");
+                                  return;
                               }
-                          });
-                      } catch (RuntimeException ignored) {
-                          释放短音效槽位();
+                              Thread.sleep(15L);
+                          }
+                      } finally {
+                          synchronized (this) { 活动短音轨道.remove(track); }
+                          释放短轨道(track);
                       }
                   }
 
@@ -7792,21 +7779,29 @@ jobs:
 
                   private float 更新循环轨道(循环流音轨 track, float volume, float 已应用音量) {
                       if (track == null) return 已应用音量;
-                      if (已应用音量 < 0f || Math.abs(volume - 已应用音量) >= 0.002f) {
+                      if (已应用音量 < 0f || (volume == 0f && 已应用音量 != 0f)
+                              || Math.abs(volume - 已应用音量) >= 0.002f) {
                           track.设置音量(volume);
                           return volume;
                       }
                       return 已应用音量;
                   }
 
-                  private synchronized boolean 申请短音效槽位() {
-                      if (活动短音效数 >= 3) return false;
-                      活动短音效数++;
+                  private synchronized boolean 申请短音效槽位(boolean fruit) {
+                      // 果实保留两个名额，雷声/烟花最多占两个，不再把拾取反馈挤掉。
+                      if (fruit) {
+                          if (活动果实音效数 >= 2) return false;
+                          活动果实音效数++;
+                      } else {
+                          if (活动短音效数 >= 2) return false;
+                          活动短音效数++;
+                      }
                       return true;
                   }
 
-                  private synchronized void 释放短音效槽位() {
-                      if (活动短音效数 > 0) 活动短音效数--;
+                  private synchronized void 释放短音效槽位(boolean fruit) {
+                      if (fruit) 活动果实音效数 = Math.max(0, 活动果实音效数 - 1);
+                      else 活动短音效数 = Math.max(0, 活动短音效数 - 1);
                   }
 
                   private void 暂停短轨道(AudioTrack track) {
@@ -7829,21 +7824,30 @@ jobs:
                       if (track != null) track.释放();
                   }
 
-                  private AudioTrack 创建流式短轨道() {
+                  private AudioTrack 创建流式短轨道(short[] samples) {
                       int minBuffer = AudioTrack.getMinBufferSize(采样率,
                               AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-                      if (minBuffer <= 0) minBuffer = 2048;
+                      if (minBuffer <= 0) minBuffer = 4096;
                       AudioTrack track = new AudioTrack.Builder()
                               .setAudioAttributes(提示音音频属性)
                               .setAudioFormat(单声道音频格式)
                               .setTransferMode(AudioTrack.MODE_STREAM)
-                              .setBufferSizeInBytes(Math.max(minBuffer, 4096))
+                              .setBufferSizeInBytes(Math.max(samples.length * 2, minBuffer * 2))
                               .build();
-                      if (track.getState() != AudioTrack.STATE_INITIALIZED) {
-                          try { track.release(); } catch (Exception ignored) { }
-                          throw new IllegalStateException("流式短音轨初始化失败");
+                      try {
+                          if (track.getState() != AudioTrack.STATE_INITIALIZED)
+                              throw new IllegalStateException("流式短音轨初始化失败");
+                          // 某些机型的启动门槛比音效长，预填到实际缓冲容量，余下为静音。
+                          int frames = Math.max(samples.length, track.getBufferSizeInFrames());
+                          short[] primed = new short[frames];
+                          System.arraycopy(samples, 0, primed, 0, samples.length);
+                          int wrote = track.write(primed, 0, primed.length, AudioTrack.WRITE_NON_BLOCKING);
+                          if (wrote < samples.length) throw new IllegalStateException("流式短音轨预填充不足");
+                          return track;
+                      } catch (RuntimeException error) {
+                          释放短轨道(track);
+                          throw error;
                       }
-                      return track;
                   }
 
                   private void 播放果实备用提示音(int 类型) {
@@ -7857,7 +7861,7 @@ jobs:
                           case 花朵果实: tone = ToneGenerator.TONE_PROP_ACK; break;
                           default: tone = ToneGenerator.TONE_PROP_BEEP; break;
                       }
-                      GameView.this.播放音效(tone, 95);
+                      GameView.this.播放音效(tone, 240);
                   }
 
                   private AudioTrack 创建短轨道(short[] samples) {
@@ -7868,10 +7872,12 @@ jobs:
                               .setBufferSizeInBytes(Math.max(samples.length * 2, 2048))
                               .build();
                       try {
-                          if (track.getState() != AudioTrack.STATE_INITIALIZED)
-                              throw new IllegalStateException("短音轨初始化未完成");
+                          // MODE_STATIC 刚创建时正常状态为 STATE_NO_STATIC_DATA；写入后才变 INITIALIZED。
+                          if (track.getState() == AudioTrack.STATE_UNINITIALIZED)
+                              throw new IllegalStateException("短音轨初始化失败");
                           int wrote = track.write(samples, 0, samples.length);
-                          if (wrote != samples.length) throw new IllegalStateException("短音轨写入不完整");
+                          if (wrote != samples.length || track.getState() != AudioTrack.STATE_INITIALIZED)
+                              throw new IllegalStateException("短音轨写入不完整");
                           return track;
                       } catch (RuntimeException error) {
                           释放短轨道(track);
@@ -7991,18 +7997,21 @@ jobs:
                   }
           
                   private short[] 生成果实音效(int 类型) {
-                      float[] durations = {0.13f, 0.12f, 0.15f, 0.12f, 0.14f, 0.14f, 0.16f};
+                      // 原版仅 120～160ms 且迅速衰减，听起来像被截断；保留原音色，补足可辨认的尾音。
+                      float[] durations = {0.42f, 0.44f, 0.48f, 0.42f, 0.46f, 0.48f, 0.50f};
                       float duration = durations[限制整数(类型, 0, 6)];
                       int length = Math.max(1, (int) (采样率 * duration));
-                      short[] out = new short[length];
+                      // 40ms 静音前导让冷音频路径稳定，100ms 尾垫让释放发生在可闻尾音之后。
+                      int lead = 采样率 * 40 / 1000;
+                      short[] out = new short[lead + length + 采样率 / 10];
                       Random noise = new Random(7411L + 类型 * 983L);
                       double phase = 0.0;
                       double phase2 = 0.0;
                       for (int i = 0; i < length; i++) {
                           float t = i / (float) 采样率;
                           float p = t / duration;
-                          float attack = Math.min(1f, p * 16f);
-                          float decay = (float) Math.pow(Math.max(0f, 1f - p), 2.2f);
+                          float attack = Math.min(1f, t / 0.012f);
+                          float decay = (float) Math.pow(Math.max(0f, 1f - p), 1.35f);
                           float env = attack * decay;
                           float startFreq;
                           float endFreq;
@@ -8038,7 +8047,7 @@ jobs:
                               float pop = p < 0.22f ? (1f - p / 0.22f) : 0f;
                               sample += (noise.nextFloat() * 2f - 1f) * pop * 0.20f;
                           }
-                          out[i] = (short) (限制(sample, -0.88f, 0.88f) * 32767);
+                          out[lead + i] = (short) (限制(sample, -0.88f, 0.88f) * 32767);
                       }
                       return out;
                   }
