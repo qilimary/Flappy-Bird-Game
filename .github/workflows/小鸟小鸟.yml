@@ -88,8 +88,8 @@ jobs:
                   applicationId "com.qili.fruitflight"
                   minSdk 23
                   targetSdk 35
-                  versionCode 18
-                  versionName "18.0"
+                  versionCode 19
+                  versionName "19.0"
               }
 
               compileOptions {
@@ -166,7 +166,7 @@ jobs:
 
           cat > app/src/main/java/com/qili/fruitflight/MainActivity.java <<'JAVA'
           package com.qili.fruitflight;
-
+          
           import android.app.Activity;
           import android.content.Context;
           import android.content.SharedPreferences;
@@ -190,15 +190,15 @@ jobs:
           import android.view.View;
           import android.view.Window;
           import android.view.WindowManager;
-
+          
           import java.util.ArrayList;
           import java.util.Random;
           import java.util.concurrent.ExecutorService;
           import java.util.concurrent.Executors;
-
+          
           public class MainActivity extends Activity {
             private GameView gameView;
-
+          
             @Override
             protected void onCreate(Bundle savedInstanceState) {
               super.onCreate(savedInstanceState);
@@ -211,7 +211,7 @@ jobs:
               gameView = new GameView(this);
               setContentView(gameView);
             }
-
+          
             private void 隐藏系统栏() {
               getWindow().getDecorView().setSystemUiVisibility(
                   View.SYSTEM_UI_FLAG_FULLSCREEN
@@ -222,7 +222,7 @@ jobs:
                       | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
               );
             }
-
+          
             @Override
             public void onWindowFocusChanged(boolean hasFocus) {
               super.onWindowFocusChanged(hasFocus);
@@ -231,25 +231,25 @@ jobs:
                 if (gameView != null) gameView.系统恢复();
               } else if (gameView != null) gameView.系统暂停();
             }
-
+          
             @Override
             protected void onPause() {
               super.onPause();
               if (gameView != null) gameView.系统暂停();
             }
-
+          
             @Override
             protected void onResume() {
               super.onResume();
               if (gameView != null) gameView.系统恢复();
             }
-
+          
             @Override
             protected void onDestroy() {
               if (gameView != null) gameView.释放声音();
               super.onDestroy();
             }
-
+          
             @SuppressWarnings("deprecation")
             @Override
             public void onBackPressed() {
@@ -257,13 +257,13 @@ jobs:
               super.onBackPressed();
             }
           }
-
+          
           class GameView extends View {
             private static final int 菜单 = 0;
             private static final int 游戏中 = 1;
             private static final int 暂停 = 2;
             private static final int 结束 = 3;
-
+          
             private static final int 经典管道 = 0;
             private static final int 危险山峰 = 1;
             private static final int 冰天雪地 = 2;
@@ -275,7 +275,7 @@ jobs:
             private static final int 海洋世界 = 8;
             private static final int 地图数量 = 8;
             private static final int 地图卡数量 = 8;
-
+          
             private static final int 冲刺果实 = 0;
             private static final int 冻结果实 = 1;
             private static final int 无敌果实 = 2;
@@ -283,7 +283,7 @@ jobs:
             private static final int 随机果实 = 4;
             private static final int 花朵果实 = 5;
             private static final int 烟花果实 = 6;
-
+          
             private static final int 新春解锁分数 = 4000;
             private static final int 星河解锁分数 = 8000;
             private static final int 最大粒子数量 = 280;
@@ -299,7 +299,7 @@ jobs:
             private static final float 宇宙小型虫洞额外概率 = 0.010f;
             private static final float 大型虫洞空窗概率 = 0.10f;
             private static final int 清屏颜色 = 0xFF040B12;
-
+          
             private static final int[] 经典天空顶色 = {
                 0xFF071B3D, 0xFFCB6E74, 0xFF53C8F0, 0xFFED875F
             };
@@ -410,7 +410,7 @@ jobs:
                 0.40f, 0.405f, 0.61f, 0.405f,
                 0.47f, 0.545f, 0.76f, 0.505f
             };
-
+          
             private final Paint 画笔 = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final Paint 描边 = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final Path 路径 = new Path();
@@ -449,6 +449,8 @@ jobs:
             private final Paint 天气画笔 = new Paint(Paint.ANTI_ALIAS_FLAG);
             private final Path 天气路径 = new Path();
             private final Path[] 雪花轮廓 = new Path[3];
+            private Bitmap 淡星河纹理;
+            private final float[] 淡星河网格 = new float[17 * 3 * 2];
             private final float[] 山峰雾Y缓存 = new float[5];
             private final int[] 山峰雾颜色缓存 = new int[5];
             private final int[] 动态四阶渐变缓存 = new int[4];
@@ -468,14 +470,14 @@ jobs:
             private final int[] 死亡方式计数 = new int[7];
             private final int[] 地图最高分 = new int[地图数量];
             private final int[] 困难地图最高分 = new int[地图数量];
-
+          
             private final ArrayList<障碍> 障碍组 = new ArrayList<>(10);
             private final ArrayList<果实> 果实组 = new ArrayList<>(12);
             private final ArrayList<粒子> 粒子组 = new ArrayList<>(最大粒子数量);
             private final ArrayList<粒子> 粒子池 = new ArrayList<>(最大粒子池数量);
             private final ArrayList<浮字> 浮字组 = new ArrayList<>(16);
             private final ArrayList<烟花> 烟花组 = new ArrayList<>(12);
-
+          
             private int 宽;
             private int 高;
             private float 地面线;
@@ -494,13 +496,13 @@ jobs:
             private float 菜单说明覆盖时间;
             private int 设定生命 = 1;
             private int 剩余生命 = 1;
-
+          
             private float 小鸟X;
             private float 小鸟Y;
             private float 小鸟速度Y;
             private float 小鸟半径;
             private float 小鸟旋转;
-
+          
             private float 经过秒数;
             private float 难度计时;
             private int 跨越障碍;
@@ -515,7 +517,7 @@ jobs:
             private int 紧邻障碍剩余;
             private boolean 上一间距紧邻;
             private boolean 等待首次点击;
-
+          
             private float 冲刺时间;
             private float 冲刺居中过渡;
             private float 冲刺起始X;
@@ -532,7 +534,7 @@ jobs:
             private float 中毒时间;
             private float 中毒跳跃倍率 = 1f;
             private int 中毒类型;
-
+          
             private boolean 时间流转;
             private float 天色相位 = 0.50f;
             private float 背景时间;
@@ -571,7 +573,7 @@ jobs:
             private float 星河背景星球X;
             private float 星河背景星球Y;
             private float 星河背景星球半径;
-
+          
             private int 猎手状态;
             private float 猎手计时;
             private float 猎手冷却;
@@ -580,7 +582,7 @@ jobs:
             private float 猎手速度Y;
             private float 猎手目标Y;
             private boolean 猎手碰到;
-
+          
             private int 龙状态;
             private float 龙冷却;
             private float 龙X;
@@ -593,7 +595,7 @@ jobs:
             private float 龙背景攻击等待;
             private boolean 龙背景后攻击;
             private float 龙预警时间;
-
+          
             private int 灯笼鱼状态;
             private float 灯笼鱼冷却;
             private float 灯笼鱼X;
@@ -609,7 +611,7 @@ jobs:
             private float 灯笼鱼光球Y;
             private float 灯笼鱼光球速度X;
             private float 海洋浪花相位;
-
+          
             private int 蹿天猴状态;
             private float 蹿天猴冷却;
             private float 蹿天猴X;
@@ -619,11 +621,11 @@ jobs:
             private float 蹿天猴旋转;
             private float 蹿天猴清障时间;
             private float 游龙驱散时间;
-
+          
             private 虫洞 小型虫洞;
             private 虫洞 大型虫洞;
             private float 穿越固定高度;
-
+          
             private int 流星状态;
             private float 流星冷却;
             private float 流星X;
@@ -632,7 +634,7 @@ jobs:
             private float 流星速度Y;
             private float 流星目标Y;
             private boolean 流星碰到;
-
+          
             private int 幸运星状态;
             private float 幸运星冷却;
             private float 幸运星X;
@@ -644,7 +646,7 @@ jobs:
             private boolean 幸运星复活可用;
             private float 幸运星复活光环时间;
             private float 幸运星清障时间;
-
+          
             private boolean 花果已生成;
             private boolean 花鸟存在;
             private boolean 花鸟复活可用;
@@ -661,13 +663,13 @@ jobs:
             private float 花鸟保护时间;
             private float 冲刺拖尾累计;
             private float 山峰危险冻结时间;
-
+          
             private int 烟花收集掩码;
             private boolean 新春彩蛋触发过;
             private float 新春彩蛋时间;
             private 新春烟雾 当前新春烟雾;
             private float 新春烟雾冷却;
-
+          
             private int 最高速度地图掩码;
             private int 已收集果实掩码;
             private int 终章果实收集掩码;
@@ -676,7 +678,7 @@ jobs:
             private int 本局一点六倍速前果实掩码;
             private float 成就提示时间;
             private String 成就提示文字 = "";
-
+          
             private double 动画时间;
             private long 上帧时间;
             private float 提示时间;
@@ -726,7 +728,7 @@ jobs:
             private String 菜单最高分文本 = "最高分 0";
             private String 菜单皮肤文本 = "‹  左右滑动选择  ›  ·  阳光小鸟";
             private String 菜单终章进度文本 = "终章收集 0/8 · 奇异果实与幸运星";
-
+          
             private final RectF 开始按钮 = new RectF();
             private final RectF 重来按钮 = new RectF();
             private final RectF 返回按钮 = new RectF();
@@ -748,7 +750,7 @@ jobs:
                 new RectF(), new RectF(), new RectF(), new RectF(),
                 new RectF(), new RectF(), new RectF(), new RectF()
             };
-
+          
             GameView(Context context) {
               super(context);
               存档 = context.getSharedPreferences("果翼飞翔存档", Context.MODE_PRIVATE);
@@ -787,7 +789,7 @@ jobs:
               上帧时间 = System.nanoTime();
               初始化地图环境(经典管道, false);
             }
-
+          
             @Override
             protected void onSizeChanged(int w, int h, int oldw, int oldh) {
               宽 = w;
@@ -823,7 +825,7 @@ jobs:
               布置按钮();
               重建尺寸相关着色器();
             }
-
+          
             private void 重建尺寸相关着色器() {
               for (int i = 0; i < 地图卡渐变缓存.length; i++) {
                 RectF r = 地图按钮[i];
@@ -839,7 +841,7 @@ jobs:
                   宽 * 0.5f, 高 * 0.205f, Math.max(1f, 宽 * 0.12f),
                   0x55FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP);
             }
-
+          
             private void 布置按钮() {
               // 恢复原本的横向长度，只增加上下高度，让卡片稍微更接近方形。
               float 卡宽 = 宽 * 0.430f;
@@ -852,7 +854,7 @@ jobs:
                 float y = 行[i / 2];
                 地图按钮[i].set(x, y, x + 卡宽, y + 卡高);
               }
-
+          
               float 控制Y = 高 * 0.671f;
               减生命按钮.set(宽 * 0.300f, 控制Y - 宽 * 0.036f,
                   宽 * 0.368f, 控制Y + 宽 * 0.036f);
@@ -874,7 +876,7 @@ jobs:
               跳跃声音切换按钮.set(宽 * 0.18f, 高 * 0.465f, 宽 * 0.82f, 高 * 0.535f);
               背景声音切换按钮.set(宽 * 0.18f, 高 * 0.565f, 宽 * 0.82f, 高 * 0.635f);
             }
-
+          
             @Override
             protected void onDraw(Canvas canvas) {
               super.onDraw(canvas);
@@ -886,24 +888,24 @@ jobs:
               if (原始dt > .12f) 物理余时 = 0f;
               if (状态 != 暂停) { 动画时间 += dt; 背景时间 += dt * 背景速度倍率(); }
               if (成就提示时间 > 0f) 成就提示时间 = Math.max(0f, 成就提示时间 - dt);
-
+          
               if (状态 == 游戏中) 推进物理(dt);
               else if (状态 != 暂停) { 物理余时 = 0f; 可插值 = false; 更新非游戏动画(dt); }
-
+          
               声音系统.更新(dt, 状态 == 游戏中 && !等待首次点击,
                   生效地图(), 降雨强度);
-
+          
               // 每帧先用完全不透明的底色清空。这样不会再出现旧帧残影、建筑刷新感，
               // 也不会因为 Paint 的历史透明度造成地图先变色再恢复。
               canvas.drawColor(清屏颜色);
-
+          
               canvas.save();
               if (画面震动 > 0f) {
                 float 强度 = 宽 * 0.012f * 画面震动;
                 canvas.translate((视觉随机.nextFloat() - 0.5f) * 强度,
                     (视觉随机.nextFloat() - 0.5f) * 强度);
               }
-
+          
               绘制背景(canvas);
               if (状态 == 菜单) {
                 绘制困难模式背景覆盖(canvas);
@@ -914,7 +916,7 @@ jobs:
                 if (状态 == 结束) 绘制结束层(canvas);
               }
               canvas.restore();
-
+          
               if (受伤暖闪 > 0f) {
                 纯色(Color.argb((int) (38 * 受伤暖闪), 255, 86, 72));
                 canvas.drawRect(0, 0, 宽, 高, 画笔);
@@ -929,7 +931,7 @@ jobs:
               else if (状态 == 结束) postInvalidateDelayed(32L);
               else postInvalidateOnAnimation();
             }
-
+          
             private void 更新非游戏动画(float dt) {
               if (提示时间 > 0f) 提示时间 -= dt;
               if (菜单说明覆盖时间 > 0f) 菜单说明覆盖时间 -= dt;
@@ -942,14 +944,14 @@ jobs:
               更新环境相位(dt, false);
               更新阴森古堡(dt);
             }
-
+          
             private void 衰减通用特效(float dt) {
               画面震动 = Math.max(0f, 画面震动 - dt * 3.4f);
               受伤暖闪 = Math.max(0f, 受伤暖闪 - dt * 3.2f);
               闪电光 = Math.max(0f, 闪电光 - dt * 3.8f);
               拍翅淡化 = Math.max(0f, 拍翅淡化 - dt * 5.5f);
             }
-
+          
             private void 初始化地图环境(int map, boolean 新一局) {
               当前地图 = map;
               if (map == 穿越 && 新一局) {
@@ -981,22 +983,22 @@ jobs:
                 星河背景星球冷却 = 0f;
               }
             }
-
+          
             private int 生效地图() {
               return 当前地图 == 穿越 ? 穿越当前主题 : 当前地图;
             }
-
+          
             private boolean 已解锁穿越() {
               return 内测模式
                   || ((终章果实收集掩码 & 0b1111111) == 0b1111111
                   && 终章幸运星已收集);
             }
-
+          
             private int 已收集终章条件数量() {
               return Integer.bitCount(终章果实收集掩码 & 0b1111111)
                   + (终章幸运星已收集 ? 1 : 0);
             }
-
+          
             private int 达到分数的地图数量(int 目标分数) {
               int count = 0;
               for (int i = 0; i < 地图数量; i++) {
@@ -1004,35 +1006,35 @@ jobs:
               }
               return count;
             }
-
+          
             private boolean 已解锁新春() {
               return 内测模式 || 达到分数的地图数量(新春解锁分数) >= 1;
             }
-
+          
             private boolean 已解锁星河宇宙() {
               return 内测模式 || 达到分数的地图数量(星河解锁分数) >= 2;
             }
-
+          
             private boolean 已解锁困难模式() {
               return 已解锁新春() && 已解锁星河宇宙() && 已解锁穿越();
             }
-
+          
             private float 当前最高速度() {
               return 困难模式 ? 8.0f : 4.2f;
             }
-
+          
             private float 当前速度进度() {
               return 限制((难度倍率 - 1f) / Math.max(0.01f, 当前最高速度() - 1f), 0f, 1f);
             }
-
+          
             private float NPC冷却(float normalSeconds) {
               return 困难模式 ? normalSeconds * 0.68f : normalSeconds;
             }
-
+          
             private boolean 穿越保护中() {
               return 当前地图 == 穿越 && 穿越过渡中;
             }
-
+          
             private int 随机下一个穿越主题() {
               if (随机.nextFloat() < 0.16f) return 海洋世界;
               int next = 随机.nextInt(7);
@@ -1040,11 +1042,11 @@ jobs:
               if (next == 穿越当前主题) next = (next + 1 + 随机.nextInt(6)) % 7;
               return next;
             }
-
+          
             private float 下次穿越事件冷却() {
               return 35f + 随机.nextFloat() * 30f;
             }
-
+          
             private void 选择地图(int map) {
               if (map == 穿越 && !已解锁穿越()) {
                 菜单说明覆盖 = "收集七种奇异果实与星河幸运星后解锁。";
@@ -1068,7 +1070,7 @@ jobs:
               菜单说明覆盖 = "";
               菜单说明覆盖时间 = 0f;
             }
-
+          
             private void 开始游戏() {
               if (困难模式 && !已解锁困难模式()) {
                 困难模式 = false;
@@ -1149,7 +1151,7 @@ jobs:
               紧邻障碍剩余 = 0;
               上一间距紧邻 = false;
               上次缺口Y = 高 * 0.48f;
-
+          
               // 只刷新本局事件；背景种子保持不变，避免开始游戏时建筑、花丛与星空跳位。
               // 黑暗丛林保留整局无雨无雷分支；危险山峰仅有小概率成为雷雨局。
               int 天气地图 = 生效地图();
@@ -1190,13 +1192,13 @@ jobs:
               古堡蝙蝠状态 = 0;
               古堡蝙蝠群数量 = 0;
               古堡蝙蝠冷却 = 2.5f + 随机.nextFloat() * 4f;
-
+          
               冰雹中 = 生效地图() == 冰天雪地 && 随机.nextFloat() < 0.08f;
               冰雹强度 = 0f;
               雪崩强度 = 0f;
               冰雹计时 = 冰雹中 ? 4.5f + 随机.nextFloat() * 3.5f
                   : 24f + 随机.nextFloat() * 18f;
-
+          
               猎手状态 = 0;
               猎手碰到 = false;
               猎手冷却 = NPC冷却(5.2f + 随机.nextFloat() * 4.0f);
@@ -1234,7 +1236,7 @@ jobs:
               幸运星复活可用 = false;
               幸运星复活光环时间 = 0f;
               幸运星清障时间 = 0f;
-
+          
               花果已生成 = false;
               花鸟存在 = false;
               花鸟复活可用 = false;
@@ -1252,7 +1254,7 @@ jobs:
               当前新春烟雾 = null;
               新春烟雾冷却 = 9f + 随机.nextFloat() * 12f;
               本局一点六倍速前果实掩码 = 0;
-
+          
               float x = 宽 * 1.15f;
               for (int i = 0; i < 5; i++) {
                 障碍 p = 创建障碍(x);
@@ -1262,13 +1264,13 @@ jobs:
               播放音效(ToneGenerator.TONE_PROP_ACK, 70);
               上帧时间 = System.nanoTime();
             }
-
+          
             private 障碍 创建障碍(float x) {
               障碍 p = new 障碍();
               p.x = x;
               p.种子 = 随机.nextInt();
               int 有效地图 = 生效地图();
-
+          
               float 进度 = 当前速度进度();
               float 缺口高 = 高 * (0.205f + 随机.nextFloat() * 0.038f);
               // 危险山峰不再额外放宽通道，和普通地图使用同一套名义缺口高度。
@@ -1309,7 +1311,7 @@ jobs:
               }
               p.缺口Y = 候选Y;
               p.缺口高 = 缺口高;
-
+          
               boolean 入边紧邻 = 上一间距紧邻;
               if (紧邻障碍剩余 == 0 && 有效地图 != 危险山峰
                   && 随机.nextFloat() < 0.016f) {
@@ -1318,7 +1320,7 @@ jobs:
                 上次缺口Y = 候选Y;
               }
               boolean 出边紧邻 = 紧邻障碍剩余 > 0;
-
+          
               if (有效地图 == 危险山峰) {
                 // 保留连绵波峰，但限制过度重叠、过小通道和突兀高度变化。
                 boolean 连峰 = 随机.nextFloat() < 0.34f;
@@ -1395,13 +1397,13 @@ jobs:
               if (有效地图 != 危险山峰) p.到下一个间距 *= 0.85f;
               p.紧邻组 = 入边紧邻 || 出边紧邻;
               上一间距紧邻 = 出边紧邻;
-
+          
               if (有效地图 == 新春) {
                 p.有鞭炮 = !p.紧邻组 && 随机.nextFloat() < 0.28f;
                 p.有福字 = 随机.nextFloat() < 0.24f;
                 p.福字在上方 = 随机.nextBoolean();
               }
-
+          
               p.花境季节 = ((int) (四季相位 * 4f)) % 4;
               建立障碍轮廓(p, 有效地图);
               校正可通行空间(p, 有效地图);
@@ -1411,7 +1413,7 @@ jobs:
               if (!尝试生成小型虫洞(p)) 创建可能果实(p);
               return p;
             }
-
+          
             private boolean 尝试生成小型虫洞(障碍 p) {
               if (当前地图 != 穿越 || 状态 != 游戏中 || 等待首次点击
                   || 穿越过渡中 || 小型虫洞 != null || 大型虫洞 != null) {
@@ -1421,7 +1423,7 @@ jobs:
               // 穿越到星河宇宙主题时，小虫洞额外增加 1 个百分点。
               if (生效地图() == 星河宇宙) 本次生成概率 += 宇宙小型虫洞额外概率;
               if (随机.nextFloat() >= 本次生成概率) return false;
-
+          
               小型虫洞 = new 虫洞();
               小型虫洞.x = p.x + p.宽度 * 0.5f;
               小型虫洞.y = p.缺口Y;
@@ -1434,7 +1436,7 @@ jobs:
               提示时间 = 1.5f;
               return true;
             }
-
+          
             private void 创建可能果实(障碍 p) {
               int 类型 = -1;
               int 有效地图 = 生效地图();
@@ -1469,7 +1471,7 @@ jobs:
               f.相位 = 随机.nextFloat() * 6.283f;
               果实组.add(f);
             }
-
+          
             private void 更新游戏(float dt) {
               if (等待首次点击) {
                 小鸟X = 宽 * 0.28f;
@@ -1481,7 +1483,7 @@ jobs:
                 更新环境相位(dt, false);
                 return;
               }
-
+          
               经过秒数 += dt;
               if (冲刺时间 <= 0f) 难度计时 += dt;
               if (困难模式) {
@@ -1504,7 +1506,7 @@ jobs:
               累计时间分 += dt * 4f * 积分倍率 * 当前常规得分倍率();
               更新环境相位(dt, true);
               更新阴森古堡(dt);
-
+          
               float 上帧冲刺 = 冲刺时间;
               冲刺时间 = Math.max(0f, 冲刺时间 - dt);
               冻结时间 = Math.max(0f, 冻结时间 - dt);
@@ -1535,13 +1537,13 @@ jobs:
               if (护盾时间 <= 0f) 护盾可挡 = false;
               衰减通用特效(dt);
               更新穿越系统(dt);
-
+          
               float 世界倍率 = 难度倍率;
               if (冻结时间 > 0f) 世界倍率 *= 0.43f;
               if (冲刺时间 > 0f) 世界倍率 *= 2.75f;
               if (花鸟接管中 && 花鸟保护时间 > 0f) 世界倍率 *= 0.13f;
               世界速度 = 宽 * 0.335f * 世界倍率;
-
+          
               if (穿越保护中()) {
                 小鸟X += (宽 * 0.50f - 小鸟X) * Math.min(1f, dt * 8f);
                 小鸟Y = 穿越固定高度;
@@ -1555,7 +1557,7 @@ jobs:
                 } else {
                   小鸟X += (宽 * 0.28f - 小鸟X) * Math.min(1f, dt * 6f);
                 }
-
+          
                 float 速度进度 = 当前速度进度();
                 // 基础下坠加速度提高 10%。
                 float 重力 = 高 * 2.222f * (0.99f + 0.12f * 速度进度);
@@ -1576,9 +1578,9 @@ jobs:
               }
               if (冲刺时间 > 0f) 更新地图冲刺拖尾(dt);
               else 冲刺拖尾累计 = 0f;
-
+          
               int 有效地图 = 生效地图();
-
+          
               int 本步清空版本 = 障碍清空版本;
               for (int i = 0; i < 障碍组.size(); i++) {
                 障碍 p = 障碍组.get(i);
@@ -1599,13 +1601,13 @@ jobs:
                 }
                 if (状态 != 游戏中 || 本步清空版本 != 障碍清空版本) break;
               }
-
+          
               // 特殊生物可能已在上面的循环中结束本局，立即停止后续拾取与碰撞。
               if (状态 != 游戏中) {
                 更新粒子浮字烟花(dt);
                 return;
               }
-
+          
               for (果实 f : 果实组) {
                 f.x -= 世界速度 * dt;
                 f.旋转 += dt * 1.7f;
@@ -1613,7 +1615,7 @@ jobs:
                 if (!f.已吃 && 距离平方(小鸟X, 小鸟Y, f.x, fy)
                     < 平方(当前小鸟半径() + 宽 * 0.031f)) 吃果实(f);
               }
-
+          
               if (穿越保护中()) {
                 障碍组.clear();
               上次生成障碍 = null; 障碍清空版本++;
@@ -1636,7 +1638,7 @@ jobs:
               int 当前有效地图 = 生效地图();
               if (当前有效地图 == 新春) 更新蹿天猴(dt);
               if (当前有效地图 == 星河宇宙) 更新幸运星(dt);
-
+          
               boolean 清障保护 = 临时清障保护中();
               if (清障保护) {
                 障碍组.clear();
@@ -1651,7 +1653,7 @@ jobs:
                   if (最后.x < 宽 * 2.30f) 障碍组.add(创建障碍(最后.x + 最后.到下一个间距));
                 }
               }
-
+          
               更新花鸟跟随(dt);
               if (!穿越保护中()) 检测碰撞();
               if (状态 != 游戏中) {
@@ -1666,7 +1668,7 @@ jobs:
               if (有效地图 == 海洋世界) 更新海洋世界(dt);
               更新粒子浮字烟花(dt);
             }
-
+          
             private void 更新穿越系统(float dt) {
               if (当前地图 != 穿越 || 状态 != 游戏中) return;
               if (穿越过渡中) {
@@ -1697,7 +1699,7 @@ jobs:
                 }
                 return;
               }
-
+          
               穿越事件冷却 -= dt;
               if (小型虫洞 != null) {
                 小型虫洞.x -= 世界速度 * dt;
@@ -1724,13 +1726,13 @@ jobs:
               // 小型虫洞虽独立生成，但在它仍位于屏幕前方时暂缓大型虫洞，避免强制穿越覆盖玩家选择。
               if (小型虫洞 != null || 大型虫洞 != null) return;
               if (穿越事件冷却 > 0f) return;
-
+          
               // 35~65 秒事件只负责大型虫洞；空窗概率由 12% 略降到 10%。
               if (随机.nextFloat() < 大型虫洞空窗概率) {
                 穿越事件冷却 = 下次穿越事件冷却();
                 return;
               }
-
+          
               大型虫洞 = new 虫洞();
               大型虫洞.x = 宽 * 0.50f;
               大型虫洞.y = 高 * 0.44f;
@@ -1743,7 +1745,7 @@ jobs:
               提示时间 = 1.2f;
               穿越事件冷却 = 下次穿越事件冷却();
             }
-
+          
             private void 启动穿越过渡(boolean 巨大虫洞触发) {
               if (穿越过渡中) return;
               穿越前主题 = 穿越当前主题;
@@ -1771,7 +1773,7 @@ jobs:
               生成浮字(宽 * 0.5f, 高 * 0.34f,
                   巨大虫洞触发 ? "进入虫洞 · 开始穿越" : "小虫洞共鸣", 0xFFB6F3FF);
             }
-
+          
             private void 更新环境相位(float dt, boolean 正式游玩) {
               if (时间流转 && (正式游玩 || 状态 == 菜单)) {
                 float 周期 = 生效地图() == 危险山峰 ? 260f : 340f;
@@ -1784,7 +1786,7 @@ jobs:
               更新银河漩涡(dt);
               if (新春彩蛋时间 > 0f) 新春彩蛋时间 = Math.max(0f, 新春彩蛋时间 - dt);
             }
-
+          
             private void 更新星河背景星球(float dt) {
               if (生效地图() != 星河宇宙) {
                 星河背景星球状态 = 0;
@@ -1801,7 +1803,7 @@ jobs:
               }
               星河背景星球冷却 -= dt;
               if (星河背景星球冷却 > 0f) return;
-
+          
               // 低概率出现；未触发时也会重新进入较长冷却，不会频繁刷星球。
               if (视觉随机.nextFloat() >= 0.38f) {
                 星河背景星球冷却 = 24f + 视觉随机.nextFloat() * 34f;
@@ -1823,7 +1825,7 @@ jobs:
               }
               星河背景星球半径 = 宽 * (0.045f + 视觉随机.nextFloat() * 0.035f);
             }
-
+          
             private void 更新天气(float dt) {
               if (生效地图() == 冰天雪地) {
                 冰雹计时 -= dt;
@@ -1842,7 +1844,7 @@ jobs:
                 冰雹强度 = Math.max(0f, 冰雹强度 - dt * 0.45f);
                 雪崩强度 = Math.max(0f, 雪崩强度 - dt * 1.05f);
               }
-
+          
               int 天气地图 = 生效地图();
               if (天气地图 == 黑暗丛林 || 天气地图 == 危险山峰) {
                 boolean 山峰天气 = 天气地图 == 危险山峰;
@@ -1882,10 +1884,10 @@ jobs:
               } else {
                 降雨强度 = Math.max(0f, 降雨强度 - dt * 0.16f);
               }
-
+          
               更新新春烟雾(dt);
             }
-
+          
             private void 更新新春烟雾(float dt) {
               if (生效地图() != 新春 || 状态 != 游戏中 || 穿越保护中()) {
                 当前新春烟雾 = null;
@@ -1920,7 +1922,7 @@ jobs:
                 新春烟雾冷却 = 9f + 随机.nextFloat() * 15f;
               }
             }
-
+          
             private void 更新蹿天猴(float dt) {
               if (生效地图() != 新春 || 穿越保护中()) {
                 蹿天猴状态 = 0;
@@ -1946,7 +1948,7 @@ jobs:
                 }
                 return;
               }
-
+          
               蹿天猴X += 蹿天猴速度X * dt;
               蹿天猴Y += 蹿天猴速度Y * dt;
               蹿天猴旋转 += dt * 160f;
@@ -1961,7 +1963,7 @@ jobs:
                 蹿天猴冷却 = NPC冷却(45f + 随机.nextFloat() * 40f);
               }
             }
-
+          
             private void 更新幸运星(float dt) {
               if (生效地图() != 星河宇宙 || 穿越保护中()) {
                 幸运星状态 = 0;
@@ -1990,7 +1992,7 @@ jobs:
                 幸运星状态 = 1;
                 return;
               }
-
+          
               幸运星X += 幸运星速度X * dt;
               幸运星Y += 幸运星速度Y * dt;
               幸运星旋转 += dt * 210f;
@@ -2023,15 +2025,15 @@ jobs:
                 幸运星冷却 = 36f + 随机.nextFloat() * 30f;
               }
             }
-
+          
             private boolean 临时清障保护中() {
               return 幸运星清障时间 > 0f || 蹿天猴清障时间 > 0f;
             }
-
+          
             private boolean 障碍危险暂停中() {
               return (花鸟接管中 && 花鸟保护时间 > 0f) || 临时清障保护中();
             }
-
+          
             private void 清空屏幕危险() {
               障碍组.clear();
               上次生成障碍 = null; 障碍清空版本++;
@@ -2041,7 +2043,7 @@ jobs:
               猎手状态 = 0;
               流星状态 = 0;
             }
-
+          
             private void 补充远处障碍(float 起点X, int 数量) {
               if (数量 <= 0 || 穿越保护中() || 临时清障保护中()) return;
               float x = 起点X;
@@ -2051,7 +2053,7 @@ jobs:
                 x += p.到下一个间距;
               }
             }
-
+          
             private void 更新山峰蛇(障碍 p, float dt) {
               if (山峰危险冻结时间 > 0f) {
                 p.蛇状态 = 0;
@@ -2098,7 +2100,7 @@ jobs:
                   }
                 }
               }
-
+          
               if ((p.蛇状态 == 2 || p.蛇状态 == 3) && !p.蛇已碰到
                   && !障碍危险暂停中()) {
                 float hx = 蛇头X(p);
@@ -2110,8 +2112,8 @@ jobs:
                 }
               }
             }
-
-
+          
+          
             private void 更新山峰蜘蛛(障碍 p, float dt) {
               if (山峰危险冻结时间 > 0f) {
                 p.蜘蛛状态 = 0;
@@ -2120,7 +2122,7 @@ jobs:
               }
               if (p.蜘蛛已碰到 || 障碍危险暂停中()) return;
               p.蜘蛛相位 += dt * (1.05f + 难度倍率 * 0.10f);
-
+          
               if (p.蜘蛛垂丝) {
                 // 20% 的垂丝蜘蛛只悬挂观察，不发起攻击，也不产生碰撞。
                 if (!p.蜘蛛会偷袭) {
@@ -2166,15 +2168,15 @@ jobs:
                 }
                 if (p.蜘蛛状态 == 0 || p.蜘蛛状态 == 4) return;
               }
-
+          
               float sx = 蜘蛛X(p);
               float sy = 蜘蛛Y(p);
               if (sx < -宽 * 0.08f || sx > 宽 * 1.08f) return;
-
+          
               float sr = 宽 * 0.0265f;
               if (距离平方(小鸟X, 小鸟Y, sx, sy)
                   >= 平方(当前小鸟半径() + sr)) return;
-
+          
               p.蜘蛛已碰到 = true;
               if (冲刺时间 > 0f || 无敌时间 > 0f) {
                 生成浮字(小鸟X, 小鸟Y - 高 * 0.060f,
@@ -2191,7 +2193,7 @@ jobs:
                 播放音效(ToneGenerator.TONE_PROP_ACK, 62);
                 return;
               }
-
+          
               中毒时间 = 3f;
               if (随机.nextBoolean()) {
                 中毒类型 = 1;
@@ -2211,7 +2213,7 @@ jobs:
               生成爆裂(sx, sy, 0xFF79C94D, 18);
               播放音效(ToneGenerator.TONE_PROP_NACK, 72);
             }
-
+          
             private void 更新阴森古堡(float dt) {
               if (生效地图() != 黑暗丛林 || 状态 != 游戏中) {
                 阴森古堡中 = false;
@@ -2221,7 +2223,7 @@ jobs:
                 古堡蝙蝠群数量 = 0;
                 return;
               }
-
+          
               if (阴森古堡中) {
                 古堡剩余时间 -= dt;
                 if (古堡剩余时间 <= 0f) {
@@ -2255,11 +2257,11 @@ jobs:
                   }
                 }
               }
-
+          
               float 混合目标 = 阴森古堡中 ? 1f : 0f;
               古堡混合度 += 限制(混合目标 - 古堡混合度, -dt * 0.72f, dt * 0.72f);
               if (古堡混合度 <= 0.01f) return;
-
+          
               古堡灯光切换冷却 -= dt;
               if (古堡灯光切换冷却 <= 0f) {
                 古堡灯光目标 = 古堡灯光目标 > 0.5f ? 0f : 1f;
@@ -2267,7 +2269,7 @@ jobs:
               }
               // 灯光从暗到亮、或从亮到暗，都严格使用约一秒渐变。
               古堡灯光亮度 += 限制(古堡灯光目标 - 古堡灯光亮度, -dt, dt);
-
+          
               if (古堡蝙蝠状态 == 0) {
                 古堡蝙蝠冷却 -= dt;
                 if (古堡蝙蝠冷却 <= 0f && 随机.nextFloat() < 0.94f) {
@@ -2290,13 +2292,13 @@ jobs:
                 }
               }
             }
-
+          
             private void 更新猎手(float dt) {
               if (障碍危险暂停中()) return;
               if (猎手状态 == 0) {
                 猎手冷却 -= dt;
                 if (猎手冷却 > 0f || 冲刺时间 > 0f) return;
-
+          
                 // 仍然避开最拥挤的紧邻障碍，防止出现无解组合；除此之外明显提高出场频率和压迫感。
                 障碍 威胁 = 寻找前方障碍(宽 * 0.20f, 宽 * 1.02f);
                 if (威胁 != null && 威胁.紧邻组) {
@@ -2304,7 +2306,7 @@ jobs:
                   return;
                 }
                 if (威胁 == null && 猎手冷却 > -1.6f) return;
-
+          
                 float 预测Y = 小鸟Y + 小鸟速度Y * 0.22f;
                 if (威胁 != null) {
                   float gapTop = 威胁.缺口Y - 威胁.缺口高 * 0.5f;
@@ -2314,14 +2316,14 @@ jobs:
                 } else {
                   猎手目标Y = 限制(预测Y, 高 * 0.13f, 地面线 - 高 * 0.11f);
                 }
-
+          
                 // 预警时从目标附近出现，让玩家仍能看见并躲避，但不再故意偏到很远的安全位置。
                 float 偏移 = 高 * (0.050f + 随机.nextFloat() * 0.045f)
                     * (随机.nextBoolean() ? 1f : -1f);
                 猎手Y = 限制(猎手目标Y + 偏移, 高 * 0.07f, 地面线 - 高 * 0.07f);
                 猎手碰到 = false;
                 猎手计时 = 0.52f;
-
+          
                 // 正式冲刺阶段会在飞到小鸟横向位置附近时逼近预测目标高度。
                 float 到达目标时间 = 0.68f;
                 猎手速度Y = (猎手目标Y - 猎手Y) / 到达目标时间;
@@ -2351,7 +2353,7 @@ jobs:
                 }
               }
             }
-
+          
             private void 更新龙(float dt) {
               if (游龙驱散时间 > 0f || 蹿天猴状态 != 0) {
                 龙状态 = 0;
@@ -2362,7 +2364,7 @@ jobs:
               if (龙状态 == 0) {
                 龙冷却 -= dt;
                 if (龙冷却 > 0f || 冲刺时间 > 0f || 穿越保护中()) return;
-
+          
                 龙方向 = 随机.nextBoolean() ? -1 : 1;
                 龙X = 龙方向 < 0 ? 宽 * 1.24f : -宽 * 0.24f;
                 龙Y = 高 * (0.12f + 随机.nextFloat() * 0.20f);
@@ -2382,7 +2384,7 @@ jobs:
                 float speedX = 宽 * (0.18f + 难度倍率 * 0.010f) * 龙方向;
                 龙X += speedX * dt;
                 龙Y += (龙速度Y + (float) Math.sin(动画时间 * 1.35f + 龙背景计时) * 高 * .108f) * dt;
-
+          
                 if (龙背景后攻击 && 龙背景计时 >= 龙背景攻击等待
                     && 冲刺时间 <= 0f && 冻结时间 <= 0f) {
                   // 难度越高，世界速度越快，需要从更远处挑选目标，不能再用固定 1.05 秒门槛。
@@ -2424,7 +2426,7 @@ jobs:
                   // 暂时没有安全目标时继续等待下一根管道，不能像旧版一样立即永久取消。
                   if (龙背景计时 > 5.2f) 龙背景后攻击 = false;
                 }
-
+          
                 boolean 离开屏幕 = 龙方向 < 0 ? 龙X < -宽 * 0.34f : 龙X > 宽 * 1.34f;
                 if (离开屏幕) {
                   龙状态 = 0;
@@ -2446,7 +2448,7 @@ jobs:
                   龙碰到 = true;
                   承受撞击("游龙冲撞");
                 }
-
+          
                 boolean 离开屏幕 = 龙方向 < 0 ? 龙X < -宽 * 0.42f : 龙X > 宽 * 1.42f;
                 if (离开屏幕) {
                   if (!龙碰到) {
@@ -2461,13 +2463,13 @@ jobs:
                 }
               }
             }
-
+          
             private void 更新特殊流星(float dt) {
               if (障碍危险暂停中()) return;
               if (流星状态 == 0) {
                 流星冷却 -= dt;
                 if (流星冷却 > 0f || 冲刺时间 > 0f || 幸运星状态 != 0) return;
-
+          
                 障碍 威胁 = 寻找前方障碍(宽 * 0.30f, 宽 * 0.92f);
                 // 紧邻障碍已经需要集中操作，不与特殊流星叠加，避免形成死局。
                 if (威胁 == null || 威胁.紧邻组) {
@@ -2481,7 +2483,7 @@ jobs:
                 流星目标Y = 威胁.缺口Y + side * 威胁.缺口高 * 0.22f;
                 float margin = 当前小鸟半径() * 2.5f;
                 流星目标Y = 限制(流星目标Y, gapTop + margin, gapBottom - margin);
-
+          
                 float safeY=选择事件高度(.90f/(.82f+难度倍率*.055f),宽*.036f*.78f,side);
                 if(Float.isNaN(safeY)){流星冷却=2.2f;return;}
                 流星目标Y=safeY;
@@ -2509,14 +2511,14 @@ jobs:
                 }
               }
             }
-
+          
             private 障碍 寻找前方障碍(float minOffset, float maxOffset) {
               for (障碍 p : 障碍组) {
                 if (p.x > 小鸟X + minOffset && p.x < 小鸟X + maxOffset) return p;
               }
               return null;
             }
-
+          
             private void 更新花鸟跟随(float dt) {
               if (!花鸟存在 || 花鸟接管中) return;
               花鸟跳跃冷却 = Math.max(0f,花鸟跳跃冷却-dt);
@@ -2552,11 +2554,11 @@ jobs:
               float rotation=限制(花鸟速度Y/(高*.35f)*48f,-28f,58f);
               花鸟旋转+=(rotation-花鸟旋转)*Math.min(1f,dt*12f);
             }
-
+          
             private float 当前小鸟半径() {
               return 小鸟半径 * (花鸟接管中 ? 0.88f : 1f);
             }
-
+          
             private void 检测碰撞() {
               float r = 当前小鸟半径();
               boolean 无敌边界弹开 = false;
@@ -2579,7 +2581,7 @@ jobs:
                   承受撞击("撞到地面");
                 }
               }
-
+          
               if (状态 != 游戏中 || 无敌边界弹开) return;
               if (障碍危险暂停中()) return;
               for (障碍 p : 障碍组) {
@@ -2597,7 +2599,7 @@ jobs:
                 }
               }
             }
-
+          
             private void 承受撞击(String 原因) {
               if (状态 != 游戏中) return;
               boolean 地面致命 = "撞到地面".equals(原因);
@@ -2619,7 +2621,7 @@ jobs:
                 播放音效(ToneGenerator.TONE_PROP_ACK, 70);
                 return;
               }
-
+          
               剩余生命--;
               int 本次扣分 = 0;
               boolean 本次触发幸运星复活 = 剩余生命 <= 0 && 幸运星复活可用
@@ -2645,7 +2647,7 @@ jobs:
                 启用花鸟接管();
                 return;
               }
-
+          
               受伤冷却 = 1.15f;
               画面震动 = 1f;
               受伤暖闪 = 0.68f;
@@ -2666,7 +2668,7 @@ jobs:
                     受伤文字, 0xFFFF7770);
               }
             }
-
+          
             private void 启用幸运星复活() {
               幸运星复活可用 = false;
               幸运星守护时间 = 0f;
@@ -2683,7 +2685,7 @@ jobs:
                   "幸运星复活 · 清障1.5秒", 0xFFFFEE9A);
               播放音效(ToneGenerator.TONE_PROP_ACK, 150);
             }
-
+          
             private void 启用花鸟接管() {
               花鸟复活可用 = false;
               花鸟存在 = false;
@@ -2704,7 +2706,7 @@ jobs:
                   "请操控花朵小鸟继续游戏", 0xFFFFC5DF);
               播放音效(ToneGenerator.TONE_PROP_ACK, 130);
             }
-
+          
             private void 吃果实(果实 f) {
               f.已吃 = true;
               f.消失时间 = 0.22f;
@@ -2761,7 +2763,7 @@ jobs:
                 颜色 = 0xFFFFC65C;
                 if (烟花收集掩码 == 0b111 && !新春彩蛋触发过) 触发新春彩蛋();
               }
-
+          
               if (f.类型 == 随机果实) {
                 奖励分 += 2f;
                 文字 += " · +2分";
@@ -2770,26 +2772,26 @@ jobs:
               生成浮字(小鸟X + 宽 * 0.04f, 小鸟Y - 高 * 0.08f, 文字, 颜色);
               播放果实专属音效(真正类型);
             }
-
+          
             private float 当前常规得分倍率() {
               return 冲刺时间 > 0f ? 1.5f : 1f;
             }
-
+          
             private int 当前果实得分() {
               float 成长 = Math.min(8f, 难度计时 / 24f);
               float 基础 = 5f + 成长;
               if (冲刺时间 > 0f) 基础 *= 2f;
               return Math.max(1, Math.round(基础));
             }
-
+          
             private void 播放果实专属音效(int 类型) {
               声音系统.播放果实音效(类型);
             }
-
+          
             private void 触发烟花(int 类型, float x, float y) {
               触发烟花(类型, x, y, true);
             }
-
+          
             private void 触发烟花(int 类型, float x, float y, boolean 播放声音) {
               烟花 fw = new 烟花();
               fw.起点X = 限制(x + (随机.nextFloat() - 0.5f) * 宽 * 0.03f,
@@ -2806,7 +2808,7 @@ jobs:
               烟花组.add(fw);
               if (播放声音) 声音系统.播放烟花音效(类型);
             }
-
+          
             private void 触发新春彩蛋() {
               新春彩蛋触发过 = true;
               新春彩蛋时间 = 7f;
@@ -2827,7 +2829,7 @@ jobs:
                   "三色齐聚 · 新春彩蛋", 0xFFFFE59A);
               声音系统.播放烟花音效(3);
             }
-
+          
             private void 触发鞭炮(障碍 p) {
               float x = p.x + p.宽度 * 0.82f;
               float y = p.缺口Y - p.缺口高 * 0.40f;
@@ -2849,7 +2851,7 @@ jobs:
               限制粒子数量();
               播放音效(ToneGenerator.TONE_PROP_BEEP2, 35);
             }
-
+          
             private void 扇动翅膀() {
               if (穿越保护中()) return;
               float 速度进度 = 当前速度进度();
@@ -2871,7 +2873,7 @@ jobs:
               生成翅膀粒子();
               播放跳跃音效();
             }
-
+          
             private void 游戏结束() {
               状态 = 结束;
               setKeepScreenOn(false);
@@ -2907,7 +2909,7 @@ jobs:
               结束最高分文本 = (困难模式 ? "本地图困难最高分  " : "本地图历史最高分  ") + 读取最高分(当前地图)
                   + (设定生命 > 1 ? " · 多生命不计纪录" : "");
             }
-
+          
             private void 检查最高速度成就() {
               // 达到当前模式的最高速度时计入成就；普通为 4.2×，困难为 8.0×。
               if (难度倍率 < 当前最高速度() - 0.05f) return;
@@ -2928,7 +2930,7 @@ jobs:
                 解锁成就("终章", "终章");
               }
             }
-
+          
             private void 更新海洋世界(float dt) {
               if(穿越保护中()||障碍危险暂停中()){灯笼鱼光球激活=false;return;}
               海洋浪花相位 += dt * 1.6f;
@@ -2948,7 +2950,7 @@ jobs:
                   灯笼鱼光球激活 = false;
                 }
               }
-
+          
               if (灯笼鱼状态 == 0) {
                 灯笼鱼冷却 -= dt;
                 if (灯笼鱼冷却 <= 0f) {
@@ -2966,7 +2968,7 @@ jobs:
                 }
                 return;
               }
-
+          
               if ((冲刺时间 > 0f || 无敌时间 > 0f)
                   && Math.abs(小鸟X - 灯笼鱼X) < 宽 * 0.070f
                   && Math.abs(小鸟Y - 灯笼鱼Y) < 高 * 0.060f) {
@@ -2983,7 +2985,7 @@ jobs:
                   }
                 }
               }
-
+          
               if (灯笼鱼状态 == 1) {
                 float 追踪X = 限制(小鸟X + 宽 * 0.28f, 宽 * 0.60f, 宽 * 0.88f);
                 float 追踪Y = 限制(小鸟Y + (float) Math.sin(动画时间 * 1.8f) * 高 * 0.012f,
@@ -3045,7 +3047,7 @@ jobs:
                 }
               }
             }
-
+          
             private void 记录果实收集(int 果实类型) {
               if (果实类型 < 冲刺果实 || 果实类型 > 烟花果实) return;
               int bit = 1 << 果实类型;
@@ -3067,7 +3069,7 @@ jobs:
               if ((已收集果实掩码 & 0b1111111) == 0b1111111) {
                 解锁成就("果实专家", "果实专家");
               }
-
+          
               if (难度倍率 < 1.6f) {
                 本局一点六倍速前果实掩码 |= bit;
                 int 需要掩码 = 当前地图全部果实掩码();
@@ -3076,7 +3078,7 @@ jobs:
                 }
               }
             }
-
+          
             private int 当前地图全部果实掩码() {
               int 标准果实 = (1 << 冲刺果实) | (1 << 冻结果实) | (1 << 无敌果实)
                   | (1 << 护盾果实) | (1 << 随机果实);
@@ -3085,7 +3087,7 @@ jobs:
               if (生效地图() == 新春) return 标准果实 | (1 << 烟花果实);
               return 标准果实;
             }
-
+          
             private void 记录死亡方式(String 原因) {
               int index;
               if ("撞到天空".equals(原因)) index = 0;
@@ -3096,7 +3098,7 @@ jobs:
               else if ("游龙冲撞".equals(原因)) index = 5;
               else if ("流星撞击".equals(原因)) index = 6;
               else return;
-
+          
               死亡方式计数[index]++;
               存档.edit().putInt("成就进度_死亡方式_" + index, 死亡方式计数[index]).apply();
               boolean 全部超过十次 = true;
@@ -3108,7 +3110,7 @@ jobs:
               }
               if (全部超过十次) 解锁成就("菜鸟", "菜鸟");
             }
-
+          
             private void 解锁成就(String key, String 名称) {
               int bit = 成就位(key);
               if (bit != 0 && (已完成成就掩码 & bit) != 0) return;
@@ -3124,34 +3126,34 @@ jobs:
               成就提示时间 = 3.4f;
               播放音效(ToneGenerator.TONE_PROP_ACK, 150);
             }
-
+          
             private boolean 成就已完成(String key) {
               int bit = 成就位(key);
               return bit != 0
                   ? (已完成成就掩码 & bit) != 0
                   : 存档.getBoolean("成就_" + key, false);
             }
-
+          
             private int 成就位(String key) {
               for (int i = 0; i < 成就键列表.length; i++) {
                 if (成就键列表[i].equals(key)) return 1 << i;
               }
               return 0;
             }
-
+          
             private int 当前分数() {
               return (int) Math.floor(累计时间分 + 累计障碍分 + 奖励分);
             }
-
+          
             private int 读取普通最高分(int 地图) {
               return 地图 >= 0 && 地图 < 地图最高分.length ? 地图最高分[地图] : 0;
             }
-
+          
             private int 读取最高分(int 地图) {
               if (地图 < 0 || 地图 >= 地图最高分.length) return 0;
               return 困难模式 ? 困难地图最高分[地图] : 地图最高分[地图];
             }
-
+          
             private void 更新粒子浮字烟花(float dt) {
               for (int i = 粒子组.size() - 1; i >= 0; i--) {
                 粒子 p = 粒子组.get(i);
@@ -3178,7 +3180,7 @@ jobs:
                 if (f.生命 <= 0f) 烟花组.remove(i);
               }
             }
-
+          
             private void 生成翅膀粒子() {
               for (int i = 0; i < 4; i++) {
                 粒子 p = 获取粒子();
@@ -3195,7 +3197,7 @@ jobs:
               }
               限制粒子数量();
             }
-
+          
             private void 更新地图冲刺拖尾(float dt) {
               // 以时间而不是帧数发射，120Hz 设备不会生成双倍粒子。
               冲刺拖尾累计 = Math.min(冲刺拖尾间隔 * 3f, 冲刺拖尾累计 + dt);
@@ -3206,7 +3208,7 @@ jobs:
                 批次++;
               }
             }
-
+          
             private void 生成地图冲刺拖尾() {
               if (生效地图() == 星河宇宙) {
                 for (int i = 0; i < 4; i++) {
@@ -3238,7 +3240,7 @@ jobs:
               }
               限制粒子数量();
             }
-
+          
             private void 生成爆裂(float x, float y, int 颜色, int 数量) {
               for (int i = 0; i < 数量; i++) {
                 float 角 = 随机.nextFloat() * 6.283f;
@@ -3258,14 +3260,14 @@ jobs:
               }
               限制粒子数量();
             }
-
+          
             private void 限制粒子数量() {
               int 超出 = 粒子组.size() - 最大粒子数量;
               if (超出 <= 0) return;
               for (int i = 0; i < 超出; i++) 回收粒子(粒子组.get(i));
               粒子组.subList(0, 超出).clear();
             }
-
+          
             private 粒子 获取粒子() {
               粒子 p = 粒子池.isEmpty()
                   ? new 粒子()
@@ -3284,16 +3286,16 @@ jobs:
               p.方形 = false;
               return p;
             }
-
+          
             private void 回收粒子(粒子 p) {
               if (粒子池.size() < 最大粒子池数量) 粒子池.add(p);
             }
-
+          
             private void 清空粒子() {
               for (int i = 粒子组.size() - 1; i >= 0; i--) 回收粒子(粒子组.get(i));
               粒子组.clear();
             }
-
+          
             private void 生成浮字(float x, float y, String text, int color) {
               浮字 f = new 浮字();
               f.x = x;
@@ -3303,7 +3305,7 @@ jobs:
               f.生命 = f.总生命 = text.length() > 14 ? 1.45f : 1.05f;
               浮字组.add(f);
             }
-
+          
             private void 绘制背景(Canvas c) {
               if (宽 <= 0 || 高 <= 0) return;
               switch (生效地图()) {
@@ -3334,7 +3336,7 @@ jobs:
                   break;
               }
             }
-
+          
             private void 绘制海洋背景(Canvas c) {
               渐变矩形(c, 0, 0, 宽, 高, 0xFF0E4F77, 0xFF8EE7F8, true);
               for (int i = 0; i < 5; i++) {
@@ -3378,7 +3380,7 @@ jobs:
               float whaleY = 高 * 0.72f;
               绘制巨鲸(c, whaleX, whaleY, 宽 * 0.34f);
             }
-
+          
             private void 绘制海洋小鱼(Canvas c, float x, float y, float r, int dir, int color) {
               c.save();
               c.translate(x, y);
@@ -3399,7 +3401,7 @@ jobs:
               c.drawCircle(r * 0.28f, -r * 0.10f, r * 0.08f, 画笔);
               c.restore();
             }
-
+          
             private void 绘制巨鲸(Canvas c, float x, float y, float r) {
               c.save();
               c.translate(x, y);
@@ -3424,7 +3426,7 @@ jobs:
               c.drawArc(-r * 0.48f, -r * 0.04f, r * 0.35f, r * 0.34f, 10, 150, false, 描边);
               c.restore();
             }
-
+          
             private void 绘制经典背景(Canvas c) {
               int 顶;
               int 底;
@@ -3443,11 +3445,11 @@ jobs:
                 c.drawCircle(宽 * 0.78f, 高 * 0.15f, 宽 * 0.20f, 画笔);
                 清除着色器();
               }
-
+          
               // 两层缓慢滚动的柔和丘陵，增加纵深但不干扰前景管道。
               绘制柔和丘陵层(c, 高 * 0.59f, 高 * 0.105f, 0x476BBF99, 0.0045f, 17);
               绘制柔和丘陵层(c, 高 * 0.68f, 高 * 0.082f, 0x7061B87A, 0.0090f, 43);
-
+          
               // 两层形状各异的云，远层更薄更慢，留出开阔天空。
               for (int layer = 0; layer < 2; layer++) {
                 for (int i = 0; i < 4; i++) {
@@ -3466,7 +3468,7 @@ jobs:
               // 低透明度空气层柔化远景，不额外增加装饰物。
               渐变矩形(c, 0, 高 * 0.48f, 宽, 地面线,
                   0x00E9F7EE, 0x1BE9F7EE, true);
-
+          
               // 固定种子的楼影，位置持续平滑滚动，不在绘制阶段调用随机数。
               for (int i = 0; i < 15; i++) {
                 float period = 宽 * 1.55f;
@@ -3482,13 +3484,13 @@ jobs:
               绘制经典树带(c);
               绘制远景草丘(c, 0xFF73C96A, 0xFF4BAA55);
             }
-
+          
             private void 绘制山峰背景(Canvas c) {
               int 顶 = 循环取色(天色相位, 山峰天空顶色);
               int 底 = 循环取色(天色相位, 山峰天空底色);
               渐变矩形(c, 0, 0, 宽, 高, 顶, 底, true);
               绘制日月星(c, 天色相位, 0.80f);
-
+          
               // 以宽幅、缓慢流动的山雾和多层裸露山体增强纵深，不加入树林。
               绘制山峰雾带(c, 高 * 0.24f, 52, 0.006f);
               绘制山层(c, 高 * 0.50f, 0.20f, 0x784C6682, 0.010f);
@@ -3500,25 +3502,26 @@ jobs:
               c.drawRect(0, 地面线 - 高 * 0.02f, 宽, 高, 画笔);
               if (降雨强度 > 0.01f) 绘制雨(c);
             }
-
+          
             private void 绘制冰雪背景(Canvas c) {
               渐变矩形(c, 0, 0, 宽, 高, 0xFF163B68, 0xFFD9F7FF, true);
-              // 大光幕与较窄亮带交叠，绿/青为主、紫色只点缀高处。
+              // 三层同向舒展的绿青光帘，减少交叉与高频褶皱。
               设置径向渐变(宽 * 0.53f, 高 * 0.19f, 宽 * 0.72f,
                   0x193FFFBF, 0x003FFFBF);
               c.drawCircle(宽 * 0.53f, 高 * 0.19f, 宽 * 0.72f, 画笔);
               清除着色器();
-              绘制极光带(c, 高 * 0.230f, 高 * 0.195f, 0.36f, 1.0f, 0);
-              绘制极光带(c, 高 * 0.315f, 高 * 0.245f, 2.15f, 0.90f, 1);
-              绘制极光带(c, 高 * 0.175f, 高 * 0.120f, 3.30f, 0.62f, 2);
-              绘制极光带(c, 高 * 0.390f, 高 * 0.205f, 4.30f, 0.55f, 0);
-
+              绘制极光带(c, 高 * 0.215f, 高 * 0.195f, 0.36f, 0.92f, 0);
+              绘制极光带(c, 高 * 0.285f, 高 * 0.235f, 0.94f, 0.70f, 1);
+              绘制极光带(c, 高 * 0.350f, 高 * 0.200f, 1.56f, 0.36f, 0);
+          
               绘制雪山层(c, 高 * 0.60f, 0xFF88B7D0, 0xFFDDF5FF, 0.016f);
               绘制雪山层(c, 高 * 0.76f, 0xFF537E9A, 0xFFF4FCFF, 0.038f);
               渐变矩形(c, 0, 地面线 - 高 * 0.025f, 宽, 高,
                   0xFFE9FBFF, 0xFF91CFE3, true);
-
-              绘制自然飘雪(c, 状态 == 菜单 ? 0f : 冰雹强度, 1f);
+          
+              float 大雪 = 状态 == 菜单 ? 0f : 限制(冰雹强度, 0f, 1f);
+              绘制圆形浮雪(c, 1f - 大雪 * 0.35f);
+              if (大雪 > 0.01f) 绘制自然飘雪(c, 大雪, 大雪);
               if (雪崩强度 > 0.01f && 状态 != 菜单) {
                 // 满强度时最多覆盖下方 20% 的背景；强度下降时雪线自然向下退去。
                 float 雪线Y = 地面线 - 高 * 0.20f * 雪崩强度;
@@ -3553,12 +3556,12 @@ jobs:
               }
               if (冰雹强度 > 0.01f && 状态 != 菜单) 绘制冰雹(c);
             }
-
+          
             private void 绘制丛林背景(Canvas c) {
               int 顶 = 混色(0xFF071E28, 0xFF061722, 降雨强度);
               int 底 = 混色(0xFF174B3B, 0xFF173838, 降雨强度);
               渐变矩形(c, 0, 0, 宽, 高, 顶, 底, true);
-
+          
               float 月X = 宽 * 0.76f;
               float 月Y = 高 * 0.16f;
               设置径向渐变(月X, 月Y, 宽 * 0.14f, 0x665DE6C1, 0x005DE6C1);
@@ -3568,21 +3571,33 @@ jobs:
               c.drawCircle(月X, 月Y, 宽 * 0.042f, 画笔);
               纯色(0xFF173E3A);
               c.drawCircle(月X + 宽 * 0.018f, 月Y - 宽 * 0.012f, 宽 * 0.040f, 画笔);
-
-              绘制丛林树层(c, 0.63f, 0xAA0B352D, 0.014f);
-              绘制丛林树层(c, 0.78f, 0xFF082B24, 0.030f);
-
-              配置描边(0xAA1F7756, 宽 * 0.010f);
-              for (int i = 0; i < 5; i++) {
-                float x = 宽 * (0.10f + i * 0.22f);
-                float len = 高 * (0.12f + (i % 3) * 0.07f);
-                路径.reset();
-                路径.moveTo(x, 0);
-                路径.cubicTo(x - 宽 * 0.06f, len * 0.35f,
-                    x + 宽 * 0.08f, len * 0.65f, x, len);
+          
+              绘制丛林树层(c, 0.56f, 0xFF244B41, 0.006f);
+              绘制丛林树层(c, 0.67f, 0xFF133D31, 0.014f);
+              // 薄雾在远近树层之间渐隐，不画横向硬边。
+              渐变矩形(c, 0, 高 * 0.50f, 宽, 高 * 0.72f, 0x00388772, 0x17388772, true);
+              渐变矩形(c, 0, 高 * 0.72f, 宽, 地面线, 0x17388772, 0x00388772, true);
+              绘制丛林树层(c, 0.82f, 0xFF082B24, 0.030f);
+          
+              for (int i = 0; i < 3; i++) {
+                float x = 宽 * (0.08f + i * 0.39f);
+                float len = 高 * (0.12f + 哈希01(背景种子 + 197, i) * 0.13f);
+                float bend = 宽 * (0.025f + i * 0.008f);
+                配置描边(0x9A255C43, 宽 * 0.0032f);
+                路径.reset(); 路径.moveTo(x, -高 * 0.02f);
+                路径.cubicTo(x - bend, len * 0.30f, x + bend, len * 0.70f, x, len);
                 c.drawPath(路径, 描边);
+                for (int j = 0; j < 5; j++) {
+                  float t = 0.20f + j * 0.155f;
+                  float vx = x + bend * 3f * t * (1f - t) * (2f * t - 1f);
+                  float vy = -高 * 0.02f * (1f - t) * (1f - t) * (1f - t)
+                      + len * (0.9f * t + 0.3f * t * t - 0.2f * t * t * t);
+                  float leaf = 宽 * (0.022f + 哈希01(背景种子 + i * 41, j + 43) * 0.012f);
+                  绘制丛林叶片(c, vx, vy, leaf, leaf * 0.27f,
+                      j % 2 == 0 ? 145f : 35f, 0xC5367852, false);
+                }
               }
-
+          
               for (int i = 0; i < 16; i++) {
                 float x = (i * 83f + 宽 * 0.07f) % 宽;
                 float y = 高 * (0.15f + ((i * 47) % 62) / 100f);
@@ -3602,11 +3617,11 @@ jobs:
               c.drawRect(0, 地面线 - 高 * 0.025f, 宽, 高, 画笔);
               if (降雨强度 > 0.01f) 绘制雨(c);
             }
-
+          
             private void 绘制阴森古堡背景(Canvas c, float mix) {
               纯色(Color.argb((int) (92 * mix), 3, 18, 24));
               c.drawRect(0, 0, 宽, 地面线, 画笔);
-
+          
               float baseY = 地面线 - 高 * 0.035f;
               float left = 宽 * 0.34f;
               float right = 宽 * 0.88f;
@@ -3615,7 +3630,7 @@ jobs:
               c.drawRect(left, 高 * 0.35f, right, baseY, 画笔);
               c.drawRect(宽 * 0.28f, 高 * 0.45f, 宽 * 0.40f, baseY, 画笔);
               c.drawRect(宽 * 0.76f, 高 * 0.40f, 宽 * 0.92f, baseY, 画笔);
-
+          
               路径.reset();
               路径.moveTo(宽 * 0.28f, 高 * 0.45f);
               路径.lineTo(宽 * 0.34f, 高 * 0.31f);
@@ -3634,18 +3649,11 @@ jobs:
               路径.lineTo(right, 高 * 0.35f);
               路径.close();
               c.drawPath(路径, 画笔);
-
-              // 破旧缺口与裂缝，让古堡更像老旧城堡。
-              配置描边(Color.argb((int) (120 * mix), 2, 11, 13), 宽 * 0.0032f);
-              路径.reset();
-              路径.moveTo(宽 * 0.56f, 高 * 0.35f);
-              路径.lineTo(宽 * 0.58f, 高 * 0.43f);
-              路径.lineTo(宽 * 0.55f, 高 * 0.50f);
-              路径.lineTo(宽 * 0.59f, 高 * 0.58f);
-              c.drawPath(路径, 描边);
+          
+              // 只保留屋顶的小缺口，去掉贯穿墙面的黑色折线裂缝。
               纯色(Color.argb((int) (120 * mix), 2, 11, 13));
               c.drawRect(宽 * 0.70f, 高 * 0.28f, 宽 * 0.73f, 高 * 0.31f, 画笔);
-
+          
               float light = 古堡灯光亮度 * mix;
               int window = Color.argb((int) ((26 + 115 * light) * mix),
                   (int) (110 + 72 * light), (int) (56 + 46 * light), (int) (24 + 18 * light));
@@ -3666,7 +3674,7 @@ jobs:
                   清除着色器();
                 }
               }
-
+          
               // 古堡近景的枯树保持与丛林相近的深绿褐色。
               for (int i = 0; i < 4; i++) {
                 float tx = 宽 * (0.10f + i * 0.27f);
@@ -3675,10 +3683,10 @@ jobs:
                 c.drawLine(tx, baseY - 高 * 0.13f, tx - 宽 * 0.05f, baseY - 高 * 0.20f, 描边);
                 c.drawLine(tx, baseY - 高 * 0.11f, tx + 宽 * 0.055f, baseY - 高 * 0.18f, 描边);
               }
-
+          
               if (古堡蝙蝠状态 != 0) 绘制古堡蝙蝠(c, 古堡蝙蝠X, 古堡蝙蝠Y, mix);
             }
-
+          
             private void 绘制古堡蝙蝠(Canvas c, float x, float y, float mix) {
               int count = Math.max(1, 古堡蝙蝠群数量);
               for (int i = 0; i < count; i++) {
@@ -3707,7 +3715,7 @@ jobs:
                 清除着色器();
               }
             }
-
+          
             private void 绘制繁花背景(Canvas c) {
               int 季节 = ((int) Math.floor(四季相位 * 4f)) % 4;
               float 局部 = 四季相位 * 4f - (float) Math.floor(四季相位 * 4f);
@@ -3717,7 +3725,7 @@ jobs:
               int bottom = 混色(繁花天空底色[季节], 繁花天空底色[下一季], 过渡);
               int ground = 混色(繁花草地色[季节], 繁花草地色[下一季], 过渡);
               渐变矩形(c, 0, 0, 宽, 高, top, bottom, true);
-
+          
               设置径向渐变(宽 * 0.78f, 高 * 0.16f, 宽 * 0.18f,
                   0x66FFF5B2, 0x00FFF5B2);
               c.drawCircle(宽 * 0.78f, 高 * 0.16f, 宽 * 0.18f, 画笔);
@@ -3730,7 +3738,7 @@ jobs:
                 绘制小花(c, fx, fy, 宽 * (0.014f + (i % 3) * 0.003f),
                     顶部大花色[i % 顶部大花色.length]);
               }
-
+          
               // 繁花秘境改为更纯粹的花海，不再绘制树木；偶尔点缀大型可爱头像。
               for (int i = 0; i < 3; i++) {
                 float cx = 平滑循环位置(i * 宽 * 0.33f - 背景时间 * 宽 * 0.008f,
@@ -3740,7 +3748,7 @@ jobs:
                 if (i % 2 == 0) 绘制可爱兔头(c, cx, cy, rr, 0x20FFFFFF);
                 else 绘制可爱猫头(c, cx, cy, rr, 0x22FFF4FF);
               }
-
+          
               纯色(调亮(ground, 0.08f));
               路径.reset();
               路径.moveTo(0, 地面线);
@@ -3756,7 +3764,7 @@ jobs:
               c.drawPath(路径, 画笔);
               渐变矩形(c, 0, 地面线 - 高 * 0.028f, 宽, 高,
                   调亮(ground, 0.06f), 调亮(ground, -0.16f), true);
-
+          
               for (int i = 0; i < 58; i++) {
                 float x = 平滑循环位置(i * 47f - 背景时间 * 宽 * 0.022f, 宽 + 90) - 45;
                 float y = 地面线 - 高 * (0.012f + 哈希01(背景种子, i * 23) * 0.105f);
@@ -3776,7 +3784,7 @@ jobs:
                 int fc = 四季花海色[季节][(i + 2) % 四季花海色[季节].length];
                 绘制小花(c, x, y, 宽 * (0.007f + (i % 3) * 0.0018f), fc);
               }
-
+          
               boolean 樱花盛放 = 季节 == 0
                   && ((int) (背景时间 / 11f) + Math.abs(背景种子 % 7)) % 4 == 0;
               int 樱花数量 = 季节 == 0 ? (樱花盛放 ? 54 : 10) : 0;
@@ -3790,7 +3798,7 @@ jobs:
                     x + 宽 * 0.0065f, y + 宽 * 0.0032f, 画笔);
                 c.restore();
               }
-
+          
               boolean 苹果出现 = 季节 == 1
                   && ((int) (背景时间 / 13f) + Math.abs(背景种子 % 5)) % 3 == 0;
               if (苹果出现) {
@@ -3800,7 +3808,7 @@ jobs:
                   绘制红苹果(c, ax, ay, 宽 * (0.0085f + (i % 3) * 0.0015f));
                 }
               }
-
+          
               boolean 秋叶飘落 = 季节 == 2
                   && ((int) (背景时间 / 10f) + Math.abs(背景种子 % 6)) % 3 != 1;
               if (秋叶飘落) {
@@ -3812,19 +3820,19 @@ jobs:
                       (float) (动画时间 * 34 + i * 29));
                 }
               }
-
+          
               boolean 寒风出现 = 季节 == 3
                   && ((int) (背景时间 / 9f) + Math.abs(背景种子 % 5)) % 3 == 0;
               if (寒风出现) 绘制寒风(c);
               if (季节 == 3) 绘制冬季大雪花坠落(c);
             }
-
+          
             private void 绘制冬季大雪花坠落(Canvas c) {
               float 周期 = 22f;
               float 种子偏移 = Math.abs(背景种子 % 997) * 0.013f;
               float 局部时间 = (背景时间 + 种子偏移) % 周期;
               if (局部时间 > 6.2f) return;
-
+          
               for (int i = 0; i < 5; i++) {
                 float 开始延迟 = i * 0.56f;
                 float 下落时长 = 3.55f
@@ -3864,7 +3872,7 @@ jobs:
                 c.restore();
               }
             }
-
+          
             private void 绘制红苹果(Canvas c, float x, float y, float r) {
               纯色(0xFFCA3741);
               c.drawCircle(x, y, r, 画笔);
@@ -3876,7 +3884,7 @@ jobs:
               c.drawOval(x + r * 0.02f, y - r * 1.20f,
                   x + r * 0.62f, y - r * 0.86f, 画笔);
             }
-
+          
             private void 绘制枫叶(Canvas c, float x, float y, float r,
                        int color, float angle) {
               c.save();
@@ -3901,7 +3909,7 @@ jobs:
               c.drawLine(x, y - r * 0.68f, x, y + r * 1.30f, 描边);
               c.restore();
             }
-
+          
             private void 绘制寒风(Canvas c) {
               for (int i = 0; i < 12; i++) {
                 float x = 平滑循环位置(i * 109f - 背景时间 * 宽 * (0.12f + (i % 3) * 0.025f),
@@ -3918,7 +3926,7 @@ jobs:
                 c.drawPath(路径, 描边);
               }
             }
-
+          
             private void 绘制可爱兔头(Canvas c, float x, float y, float r, int color) {
               纯色(color);
               c.drawCircle(x, y, r, 画笔);
@@ -3929,7 +3937,7 @@ jobs:
               c.drawCircle(x + r * 0.22f, y - r * 0.06f, r * 0.10f, 画笔);
               c.drawOval(x - r * 0.16f, y + r * 0.12f, x + r * 0.16f, y + r * 0.28f, 画笔);
             }
-
+          
             private void 绘制可爱猫头(Canvas c, float x, float y, float r, int color) {
               纯色(color);
               路径.reset();
@@ -3947,10 +3955,10 @@ jobs:
               c.drawCircle(x + r * 0.22f, y + r * 0.04f, r * 0.09f, 画笔);
               c.drawOval(x - r * 0.12f, y + r * 0.22f, x + r * 0.12f, y + r * 0.34f, 画笔);
             }
-
+          
             private void 绘制星河背景(Canvas c) {
               渐变矩形(c, 0, 0, 宽, 高, 0xFF071238, 0xFF3B1D63, true);
-
+          
               // 柔和星云层，使用固定位置和连续呼吸，不会突然刷新。
               设置径向渐变(宽 * 0.22f, 高 * 0.25f, 宽 * 0.48f,
                   0x554E78FF, 0x004E78FF);
@@ -3960,13 +3968,13 @@ jobs:
                   0x4DDC62C8, 0x00DC62C8);
               c.drawCircle(宽 * 0.78f, 高 * 0.42f, 宽 * 0.42f, 画笔);
               清除着色器();
-
+          
               绘制银河漩涡(c);
               绘制缓现星河背景星球(c);
-
+          
               // 顶部主天体改为带星环的行星。
               绘制星河主星环行星(c);
-
+          
               // 固定星点与十字亮星。
               for (int i = 0; i < 78; i++) {
                 float x = 哈希01(背景种子 + 601, i * 17 + 3) * 宽;
@@ -3983,7 +3991,7 @@ jobs:
                   c.drawLine(x, y - r * 4.2f, x, y + r * 4.2f, 描边);
                 }
               }
-
+          
               // 环境流星只是背景装饰，轨迹稳定循环且不会造成伤害。
               for (int i = 0; i < 4; i++) {
                 float phase = 平滑循环位置((float) (背景时间 * (0.055f + i * 0.006f)
@@ -4002,40 +4010,51 @@ jobs:
                 c.drawCircle(x, y, 宽 * 0.028f, 画笔);
                 清除着色器();
               }
-
+          
               绘制星河山层(c, 高 * 0.69f, 高 * 0.105f, 0xAA312E70, 0.010f);
               绘制星河山层(c, 高 * 0.78f, 高 * 0.135f, 0xDD201E5C, 0.024f);
               绘制星河山层(c, 地面线, 高 * 0.090f, 0xFF101747, 0.040f);
-
-              // 银河像一条宽阔的星河穿过山谷，色彩更淡并融入紫蓝背景。
-              路径.reset();
-              路径.moveTo(宽 * 0.34f, 地面线 + 高 * 0.012f);
-              路径.cubicTo(宽 * 0.72f, 高 * 0.82f,
-                  宽 * 0.20f, 高 * 0.76f,
-                  宽 * 0.53f, 高 * 0.685f);
-              路径.cubicTo(宽 * 0.72f, 高 * 0.63f,
-                  宽 * 0.53f, 高 * 0.60f,
-                  宽 * 0.66f, 高 * 0.535f);
-              配置描边(0x28524FA0, 宽 * 0.082f);
-              c.drawPath(路径, 描边);
-              配置描边(0x3B6864B9, 宽 * 0.049f);
-              c.drawPath(路径, 描边);
-              配置描边(0x527F8CCB, 宽 * 0.021f);
-              c.drawPath(路径, 描边);
-              配置描边(0x669DB0DE, 宽 * 0.0060f);
-              c.drawPath(路径, 描边);
-              for (int i = 0; i < 7; i++) {
-                float sx = 宽 * (0.43f + i * 0.031f);
-                float sy = 地面线 - 高 * (0.030f + i * 0.047f);
-                float tw = 0.55f + 0.45f * (float) Math.sin(动画时间 * 1.5f + i);
-                纯色(Color.argb((int) (105 + 95 * tw), 211, 222, 255));
-                c.drawCircle(sx, sy, 宽 * (0.0025f + (i % 2) * 0.0012f), 画笔);
-              }
-
+          
+              绘制淡星河(c);
+          
               纯色(0xFF080F36);
               c.drawRect(0, 地面线 - 高 * 0.015f, 宽, 高, 画笔);
             }
-
+          
+            private void 绘制淡星河(Canvas c) {
+              if (淡星河纹理 == null) {
+                int tw = 64, th = 128;
+                int[] pixels = new int[tw * th];
+                float edge = (float) Math.exp(-2.25);
+                for (int y = 0; y < th; y++) {
+                  float v = y / (float) (th - 1);
+                  float depth = (float) Math.pow(v, 1.25);
+                  for (int x = 0; x < tw; x++) {
+                    float u = (x / (float) (tw - 1) - 0.5f) * 3f;
+                    float soft = Math.max(0f, ((float) Math.exp(-u * u) - edge) / (1f - edge));
+                    pixels[y * tw + x] = Color.argb(Math.round(33f * depth * soft), 139, 152, 211);
+                  }
+                }
+                淡星河纹理 = Bitmap.createBitmap(pixels, tw, th, Bitmap.Config.ARGB_8888);
+              }
+              for (int row = 0; row < 17; row++) {
+                float v = row / 16f;
+                float center = 宽 * (0.66f - 0.26f * 平滑步(v)
+                    + 0.015f * (float) Math.sin(v * 6.283f));
+                float half = 宽 * (0.012f + 0.13f * (float) Math.pow(v, 1.5));
+                float y = 高 * 0.535f + (地面线 - 高 * 0.535f) * v;
+                for (int col = 0; col < 3; col++) {
+                  int index = row * 3 + col;
+                  淡星河网格[index * 2] = center + (col - 1) * half;
+                  淡星河网格[index * 2 + 1] = y;
+                }
+              }
+              boolean filter = 画笔.isFilterBitmap();
+              准备填充(); 画笔.setFilterBitmap(true);
+              c.drawBitmapMesh(淡星河纹理, 2, 16, 淡星河网格, 0, null, 0, 画笔);
+              画笔.setFilterBitmap(filter);
+            }
+          
             private void 绘制星河主星环行星(Canvas c) {
               float x = 宽 * 0.72f;
               float y = 高 * 0.19f;
@@ -4043,7 +4062,7 @@ jobs:
               设置径向渐变(x, y, 宽 * 0.21f, 0x6678A8FF, 0x0078A8FF);
               c.drawCircle(x, y, 宽 * 0.21f, 画笔);
               清除着色器();
-
+          
               // 后半圈先画，随后由星球本体自然遮住中段。
               c.save();
               c.rotate(-16f, x, y);
@@ -4054,7 +4073,7 @@ jobs:
               c.drawOval(x - r * 1.98f, y - r * 0.56f,
                   x + r * 1.98f, y + r * 0.56f, 描边);
               c.restore();
-
+          
               设置径向渐变(x - r * 0.28f, y - r * 0.30f, r * 1.45f,
                   0xFFB9D8FF, 0xFF6656B3);
               c.drawCircle(x, y, r, 画笔);
@@ -4065,7 +4084,7 @@ jobs:
               纯色(0x36775D9D);
               c.drawCircle(x - r * 0.28f, y + r * 0.22f, r * 0.13f, 画笔);
               c.drawCircle(x + r * 0.32f, y - r * 0.28f, r * 0.10f, 画笔);
-
+          
               // 前半圈覆盖在星球表面，星环的前后关系更清晰。
               c.save();
               c.rotate(-16f, x, y);
@@ -4075,14 +4094,14 @@ jobs:
                   8f, 164f, false, 描边);
               c.restore();
             }
-
+          
             private void 绘制缓现星河背景星球(Canvas c) {
               if (星河背景星球状态 == 0 || 星河背景星球总时长 <= 0f) return;
               float 淡入 = 限制(星河背景星球时间 / 4f, 0f, 1f);
               float 淡出 = 限制((星河背景星球总时长 - 星河背景星球时间) / 4f, 0f, 1f);
               float alpha = 平滑步(Math.min(淡入, 淡出));
               if (alpha <= 0.005f) return;
-
+          
               float x = 星河背景星球X
                   + (float) Math.sin(星河背景星球时间 * 0.16f) * 宽 * 0.006f;
               float y = 星河背景星球Y;
@@ -4092,7 +4111,7 @@ jobs:
                   Color.argb((int) (alpha * 42f), 150, 187, 255), 0x00000000);
               c.drawCircle(x, y, r * 2.2f, 画笔);
               清除着色器();
-
+          
               if (星河背景星球类型 == 0) {
                 设置径向渐变(x - r * 0.25f, y - r * 0.28f, r * 1.45f,
                     Color.argb(a, 255, 207, 143), Color.argb(a, 143, 78, 128));
@@ -4133,7 +4152,7 @@ jobs:
                 清除着色器();
               }
             }
-
+          
             private void 绘制星河山层(Canvas c, float baseY, float amplitude,
                          int color, float scroll) {
               float 步长 = 宽 * 0.22f;
@@ -4155,7 +4174,7 @@ jobs:
               路径.close();
               c.drawPath(路径, 画笔);
             }
-
+          
             private void 绘制新春背景(Canvas c) {
               渐变矩形(c, 0, 0, 宽, 高, 0xFF4E1025, 0xFF120D24, true);
               设置径向渐变(宽 * 0.76f, 高 * 0.17f, 宽 * 0.20f,
@@ -4164,7 +4183,7 @@ jobs:
               清除着色器();
               纯色(0xFFFFE2A0);
               c.drawCircle(宽 * 0.76f, 高 * 0.17f, 宽 * 0.040f, 画笔);
-
+          
               // 远处楼宇使用固定模板循环，窗口只做连续呼吸亮度，不重排位置。
               for (int 层 = 0; 层 < 2; 层++) {
                 float speed = 层 == 0 ? 0.010f : 0.024f;
@@ -4196,20 +4215,20 @@ jobs:
                       层 == 0 ? 0xFF4A2032 : 0xFF6C2631, 直线屋檐);
                 }
               }
-
+          
               for (int i = 0; i < 7; i++) {
                 float x = 宽 * (0.08f + i * 0.145f);
                 float y = 高 * (0.10f + (i % 2) * 0.055f);
                 绘制灯笼(c, x, y, 宽 * 0.021f,
                     0.88f + 0.12f * (float) Math.sin(动画时间 * 1.4f + i));
               }
-
+          
               if (当前新春烟雾 != null) 绘制新春烟雾(c, 当前新春烟雾);
-
+          
               for (烟花 fw : 烟花组) 绘制烟花(c, fw);
               纯色(0xFF120D1D);
               c.drawRect(0, 地面线 - 高 * 0.026f, 宽, 高, 画笔);
-
+          
               if (新春彩蛋时间 > 0f) {
                 float elapsed = 7f - 新春彩蛋时间;
                 float alpha = elapsed < 2f ? 平滑步(elapsed / 2f)
@@ -4224,7 +4243,7 @@ jobs:
                     Paint.Align.CENTER, true);
               }
             }
-
+          
             private void 绘制新春烟雾(Canvas c, 新春烟雾 s) {
               float life = 限制(s.生命 / Math.max(0.001f, s.总生命), 0f, 1f);
               float fadeIn = 限制((s.总生命 - s.生命) / 1.1f, 0f, 1f);
@@ -4241,7 +4260,7 @@ jobs:
                 c.drawCircle(px, py, rr * 0.62f, 画笔);
               }
             }
-
+          
             private void 绘制中式屋檐(Canvas c, float x, float y, float w,
                          int color, boolean 直线屋檐) {
               纯色(color);
@@ -4264,8 +4283,8 @@ jobs:
               配置描边(0x88F6C66F, 宽 * 0.0024f);
               c.drawPath(路径, 描边);
             }
-
-
+          
+          
             private void 绘制灯笼(Canvas c, float x, float y, float r, float glow) {
               int glowAlpha = (int) (85 * glow);
               纯色(Color.argb(glowAlpha / 3, 255, 80, 43));
@@ -4284,7 +4303,7 @@ jobs:
               c.drawOval(x - r, y - r * 1.15f, x + r, y + r * 1.15f, 描边);
               c.drawLine(x, y + r * 1.15f, x, y + r * 1.85f, 描边);
             }
-
+          
             private void 绘制烟花(Canvas c, 烟花 fw) {
               float elapsed = fw.总生命 - fw.生命;
               float launchT = 限制(elapsed / fw.升空时长, 0f, 1f);
@@ -4306,7 +4325,7 @@ jobs:
               float t = 限制((elapsed - fw.升空时长) / Math.max(0.0001f, fw.爆炸时长), 0f, 1f);
               float fade = 1f - t;
               int[] palette = 烟花调色板[限制整数(fw.类型, 0, 2)];
-
+          
               float ring1 = 宽 * (0.020f + 0.075f * t);
               float ring2 = 宽 * (0.015f + 0.048f * t);
               for (int i = 0; i < 34; i++) {
@@ -4332,7 +4351,7 @@ jobs:
               c.drawCircle(fw.目标X, fw.目标Y, 宽 * 0.120f, 画笔);
               清除着色器();
             }
-
+          
             private void 绘制日月星(Canvas c, float phase, float 高度比例) {
               float 白昼 = (float) ((Math.cos((phase - 0.5f) * Math.PI * 2) + 1) * 0.5);
               if (白昼 < 0.48f) {
@@ -4360,7 +4379,7 @@ jobs:
                 c.drawCircle(x + 宽 * 0.014f, y - 宽 * 0.009f, 宽 * 0.028f, 画笔);
               }
             }
-
+          
             private void 绘制自然云(Canvas c, float x, float y, float size,
                        int alpha, int seed, boolean far) {
               float h = size * (far ? 0.28f : 0.42f);
@@ -4384,7 +4403,7 @@ jobs:
               c.drawPath(路径, 画笔);
               清除着色器();
             }
-
+          
             private void 准备天气样本() {
               if (天气种子缓存 == 背景种子) return;
               for (int i = 0; i < 天气样本.length; i++) {
@@ -4392,7 +4411,7 @@ jobs:
               }
               天气种子缓存 = 背景种子;
             }
-
+          
             private Path 获取雪花轮廓(int variant) {
               variant = 限制整数(variant, 0, 2);
               if (雪花轮廓[variant] != null) return 雪花轮廓[variant];
@@ -4417,7 +4436,26 @@ jobs:
               雪花轮廓[variant] = shape;
               return shape;
             }
-
+          
+            private void 绘制圆形浮雪(Canvas c, float opacity) {
+              准备天气样本();
+              天气画笔.setShader(null); 天气画笔.setStyle(Paint.Style.FILL);
+              for (int i = 0; i < 44; i++) {
+                float[] q = 天气样本[250 + i];
+                float time = 背景时间;
+                float fall = q[1] + time * (0.018f + q[2] * 0.025f);
+                float local = fall - (float) Math.floor(fall);
+                float sway = (float) Math.sin(time * (0.32f + q[4] * 0.35f) + q[5] * 6.283f) * 宽 * 0.019f;
+                float x = 平滑循环位置(q[0] * 宽 * 1.12f + time * 宽 * 0.003f + sway,
+                    宽 * 1.12f) - 宽 * 0.06f;
+                float y = local * (地面线 + 高 * 0.05f) - 高 * 0.025f;
+                float r = 宽 * (0.0018f + q[6] * 0.0036f);
+                float fade = 平滑步(local / 0.045f) * 平滑步((1f - local) / 0.06f);
+                天气画笔.setColor(Color.argb((int) ((85f + q[3] * 85f) * opacity * fade), 250, 254, 255));
+                c.drawCircle(x, y, r, 天气画笔);
+              }
+            }
+          
             private void 绘制自然飘雪(Canvas c, float storm, float opacity) {
               准备天气样本();
               storm = 限制(storm, 0f, 1f);
@@ -4465,7 +4503,7 @@ jobs:
               }
               天气画笔.setStyle(Paint.Style.FILL);
             }
-
+          
             private void 绘制云(Canvas c, float x, float y, float s, int color) {
               纯色(color);
               c.drawOval(x - s * 0.60f, y - s * 0.12f,
@@ -4474,7 +4512,7 @@ jobs:
               c.drawCircle(x + s * 0.16f, y - s * 0.20f, s * 0.41f, 画笔);
               c.drawCircle(x + s * 0.48f, y, s * 0.25f, 画笔);
             }
-
+          
             private void 绘制柔和丘陵层(Canvas c, float baseY, float amplitude,
                         int color, float scroll, int seedOffset) {
               float world = 背景时间 * scroll;
@@ -4490,7 +4528,7 @@ jobs:
               路径.lineTo(宽 * 1.12f, 地面线); 路径.close();
               c.drawPath(路径, 画笔);
             }
-
+          
             private void 绘制经典树带(Canvas c) {
               float period = 宽 * 1.42f;
               for (int i = 0; i < 12; i++) {
@@ -4508,7 +4546,7 @@ jobs:
                 c.drawCircle(x + s * 0.52f, base - s * 0.20f, s * 0.56f, 画笔);
               }
             }
-
+          
             private void 绘制山峰雾带(Canvas c, float y, int alpha, float scroll) {
               // 不再用一团团圆形云朵拼雾，而是参考极光绘制成横跨屏幕的柔软流带。
               // 两层雾带以不同速度和振幅缓慢漂移，边缘完全透明，中部柔和叠加。
@@ -4521,7 +4559,7 @@ jobs:
                     动画时间 * (0.032f + scroll * 0.70f) + layer * 2.15f)
                     * 宽 * (layer == 0 ? 0.085f : 0.125f);
                 float x0 = -宽 * 0.30f + drift;
-
+          
                 for (int i = 0; i < 山峰雾Y缓存.length; i++) {
                   山峰雾Y缓存[i] = y
                       + 高 * (layer == 0 ? -0.010f : 0.018f)
@@ -4530,7 +4568,7 @@ jobs:
                       + 高 * 0.006f
                       * (float) Math.sin(phase * 1.67f + i * 1.31f);
                 }
-
+          
                 路径.reset();
                 路径.moveTo(x0, 山峰雾Y缓存[0]);
                 for (int i = 0; i < 4; i++) {
@@ -4554,7 +4592,7 @@ jobs:
                       xb + step * 0.34f, yb, xb, yb);
                 }
                 路径.close();
-
+          
                 int centerAlpha = Math.min(255,
                     Math.round(alpha * (layer == 0 ? 0.92f : 0.54f)));
                 int sideAlpha = Math.round(centerAlpha * 0.52f);
@@ -4570,7 +4608,7 @@ jobs:
                 清除着色器();
               }
             }
-
+          
             private void 绘制山峰松林(Canvas c) {
               float period = 宽 * 1.34f;
               for (int i = 0; i < 18; i++) {
@@ -4591,7 +4629,7 @@ jobs:
                 c.drawPath(路径, 画笔);
               }
             }
-
+          
             private void 绘制远景草丘(Canvas c, int 远色, int 近色) {
               纯色(远色); 路径.reset(); 路径.moveTo(0, 地面线);
               float offset = 背景时间 * 0.012f;
@@ -4607,7 +4645,7 @@ jobs:
               渐变矩形(c, 0, 地面线 - 高 * 0.035f, 宽, 地面线 - 高 * 0.024f,
                   0x0091E06B, 0x8091E06B, true);
             }
-
+          
             private void 绘制山层(Canvas c, float baseY, float 振幅, int color, float scroll) {
               纯色(color);
               路径.reset();
@@ -4628,7 +4666,7 @@ jobs:
               路径.close();
               c.drawPath(路径, 画笔);
             }
-
+          
             private void 绘制雪山层(Canvas c, float baseY, int rock, int snow, float scroll) {
               float 步长 = 宽 * 0.33f;
               float 世界滚动 = 背景时间 * 宽 * scroll;
@@ -4657,37 +4695,81 @@ jobs:
                 c.drawPath(路径, 画笔);
               }
             }
-
+          
+          
             private void 绘制丛林树层(Canvas c, float base, int color, float scroll) {
-              float 步长 = 宽 * 0.18f;
-              float 世界滚动 = 背景时间 * 宽 * scroll;
-              int 起始世界索引 = (int) Math.floor(世界滚动 / 步长);
-              float 局部偏移 = 平滑循环位置(世界滚动, 步长);
-              for (int i = -2; i < 8; i++) {
-                int 世界索引 = 起始世界索引 + i;
-                float x = i * 步长 - 局部偏移;
-                float top = 高 * (base - 0.15f - (Math.abs(世界索引 * 17) & 3) * 0.025f);
-                配置渐变(x, top, x + 宽 * 0.12f, 地面线,
-                    调亮(color, -0.12f), 调亮(color, 0.08f));
-                c.drawRoundRect(x + 宽 * 0.066f, top, x + 宽 * 0.105f,
-                    地面线, 宽 * 0.02f, 宽 * 0.02f, 画笔);
-                清除着色器();
-                配置描边(调亮(color, -0.08f), 宽 * 0.014f);
-                c.drawLine(x + 宽 * 0.084f, top + 高 * 0.08f,
-                    x + 宽 * 0.012f, top + 高 * 0.018f, 描边);
-                c.drawLine(x + 宽 * 0.088f, top + 高 * 0.075f,
-                    x + 宽 * 0.166f, top + 高 * 0.008f, 描边);
-                纯色(调亮(color, -0.03f));
-                c.drawOval(x - 宽 * 0.080f, top - 高 * 0.045f,
-                    x + 宽 * 0.215f, top + 高 * 0.060f, 画笔);
-                纯色(调亮(color, 0.06f));
-                c.drawOval(x - 宽 * 0.045f, top - 高 * 0.075f,
-                    x + 宽 * 0.120f, top + 高 * 0.028f, 画笔);
-                c.drawOval(x + 宽 * 0.055f, top - 高 * 0.066f,
-                    x + 宽 * 0.225f, top + 高 * 0.035f, 画笔);
+              float step = 宽 * 0.205f;
+              float travel = 背景时间 * 宽 * scroll;
+              int first = (int) Math.floor(travel / step);
+              float offset = 平滑循环位置(travel, step);
+              int layerSeed = 背景种子 + Math.round(base * 971f);
+              for (int i = -2; i < 7; i++) {
+                int seed = first + i;
+                float q = 哈希01(layerSeed, seed * 31 + 7);
+                float x = i * step - offset + 宽 * (0.05f + q * 0.065f);
+                float top = 高 * (base - 0.15f - 哈希01(layerSeed, seed * 17) * 0.085f);
+                float lean = 宽 * (-0.035f + q * 0.065f);
+                float trunk = 宽 * (0.011f + 哈希01(layerSeed, seed * 23) * 0.014f);
+                // 有收束与弯曲的树干，树根、侧枝和冠幅各不相同。
+                纯色(调亮(color, -0.08f));
+                路径.reset(); 路径.moveTo(x - trunk * 1.7f, 地面线);
+                路径.cubicTo(x - trunk * 0.6f, 高 * base, x + lean - trunk * 0.35f,
+                    top + 高 * 0.05f, x + lean, top - 高 * 0.016f);
+                路径.cubicTo(x + lean + trunk * 0.55f, top + 高 * 0.055f,
+                    x + trunk * 0.7f, 高 * base, x + trunk * 1.8f, 地面线);
+                路径.close(); c.drawPath(路径, 画笔);
+                配置描边(调亮(color, -0.05f), trunk * 0.62f);
+                路径.reset(); 路径.moveTo(x + lean * 0.5f, top + 高 * 0.105f);
+                路径.quadTo(x - 宽 * 0.006f, top + 高 * 0.028f,
+                    x - 宽 * (0.075f + q * 0.030f), top - 高 * 0.006f);
+                路径.moveTo(x + lean * 0.6f, top + 高 * 0.075f);
+                路径.quadTo(x + 宽 * 0.045f, top + 高 * 0.035f,
+                    x + 宽 * (0.085f + q * 0.025f), top - 高 * 0.014f);
+                c.drawPath(路径, 描边);
+                float crown = 宽 * (0.105f + q * 0.038f);
+                绘制丛林树冠(c, x - crown * 0.58f, top + 高 * 0.014f,
+                    crown * 0.78f, 高 * (0.030f + q * 0.012f), 调亮(color, -0.035f), seed * 3 + layerSeed);
+                绘制丛林树冠(c, x + crown * 0.64f, top - 高 * 0.006f,
+                    crown * 0.85f, 高 * 0.040f, color, seed * 3 + layerSeed + 1);
+                绘制丛林树冠(c, x + lean * 0.8f, top - 高 * 0.027f,
+                    crown, 高 * (0.048f + q * 0.012f), 调亮(color, 0.025f), seed * 3 + layerSeed + 2);
+                if (base > 0.75f) {
+                  // 冠缘稀疏的尖叶与下垂小枝，打破一串椭圆的重复轮廓。
+                  for (int j = 0; j < 8; j++) {
+                    float lx = x + crown * (-1.10f + j * 0.32f);
+                    float ly = top + 高 * (0.024f + 哈希01(seed + layerSeed, j) * 0.012f);
+                    配置描边(color, 宽 * 0.0016f);
+                    路径.reset(); 路径.moveTo(lx - 宽 * 0.012f, top);
+                    路径.quadTo(lx - 宽 * 0.008f, ly - 高 * 0.012f, lx, ly);
+                    c.drawPath(路径, 描边);
+                    绘制丛林叶片(c, lx, ly, 宽 * 0.028f, 宽 * 0.007f,
+                        58f + 哈希01(seed + 51, j) * 76f, color, false);
+                  }
+                }
               }
             }
-
+          
+            private void 绘制丛林树冠(Canvas c, float x, float y, float rx, float ry,
+                            int color, int seed) {
+              // 不规则的连贯曲面组成树冠，用固定种子保持滚动时形状稳定。
+              纯色(color); 路径.reset();
+              float firstR = 0.75f + 哈希01(seed, 0) * 0.36f;
+              float px = x + rx * firstR, py = y;
+              float nextR = 0.75f + 哈希01(seed, 17) * 0.36f;
+              float nx = x + rx * nextR * 0.9510565f, ny = y + ry * nextR * 0.309017f;
+              路径.moveTo((px + nx) * 0.5f, (py + ny) * 0.5f);
+              for (int k = 1; k <= 20; k++) {
+                int n = k % 20, after = (k + 1) % 20;
+                float a = n * 0.3141593f, b = after * 0.3141593f;
+                float r = 0.75f + 哈希01(seed, n * 17) * 0.36f;
+                float r2 = 0.75f + 哈希01(seed, after * 17) * 0.36f;
+                float cx = x + rx * r * (float) Math.cos(a), cy = y + ry * r * (float) Math.sin(a);
+                float ax = x + rx * r2 * (float) Math.cos(b), ay = y + ry * r2 * (float) Math.sin(b);
+                路径.quadTo(cx, cy, (cx + ax) * 0.5f, (cy + ay) * 0.5f);
+              }
+              路径.close(); c.drawPath(路径, 画笔);
+            }
+          
             private void 绘制极光带(Canvas c, float baseY, float height,
                        float phase, float opacity, int palette) {
               Bitmap texture = 极光纹理[palette];
@@ -4715,11 +4797,11 @@ jobs:
               for (int i = 0; i < 49; i++) {
                 float u = i / 48f;
                 float x = 宽 * (-0.12f + u * 1.24f);
-                float bottom = baseY + 高 * (0.040f * (float) Math.sin(u * 5.1f + time + phase)
-                    + 0.020f * (float) Math.sin(u * 11.3f - time * 0.67f + phase * 1.7f)
-                    + 0.006f * (float) Math.sin(u * 27f + time * 0.42f + phase));
-                float h = height * (0.76f + 0.17f * (float) Math.sin(u * 7.8f - time * 0.53f + phase)
-                    + 0.07f * (float) Math.sin(u * 19f + time * 0.35f));
+                float bottom = baseY + 高 * (0.026f * (float) Math.sin(u * 5.1f + time + phase)
+                    + 0.009f * (float) Math.sin(u * 10.3f - time * 0.47f + phase)
+                    + 0.0033f * (float) Math.sin(u * 21f + time * 0.32f + phase));
+                float h = height * (0.82f + 0.13f * (float) Math.sin(u * 6.8f - time * 0.43f + phase)
+                    + 0.05f * (float) Math.sin(u * 15f + time * 0.25f));
                 float density = 0.75f + 0.18f * (float) Math.sin(u * 9.3f - time * 0.81f + phase)
                     + 0.07f * (float) Math.sin(u * 24f + time * 0.47f);
                 for (int row = 0; row < 4; row++) {
@@ -4736,7 +4818,7 @@ jobs:
               c.drawBitmapMesh(texture, 48, 3, 极光网格缓存, 0, 极光网格颜色, 0, 画笔);
               画笔.setFilterBitmap(filter);
             }
-
+          
             private void 绘制雨(Canvas c) {
               准备天气样本();
               float strength = 限制(降雨强度, 0f, 1f), time = 背景时间;
@@ -4777,7 +4859,7 @@ jobs:
                   Color.argb((int) (3 * strength), 102, 139, 149),
                   Color.argb((int) (12 * strength), 119, 155, 162), true);
             }
-
+          
             private void 绘制冰雹(Canvas c) {
               // 大雪期间只混入少量冰粒，使用微小椭圆高光，不再是长线挂圆点。
               准备天气样本();
@@ -4793,7 +4875,7 @@ jobs:
                 c.drawCircle(x - r * 0.18f, y - r * 0.20f, r * 0.35f, 画笔);
               }
             }
-
+          
             private void 绘制小花(Canvas c, float x, float y, float r, int color) {
               纯色(color);
               for (int i = 0; i < 5; i++) {
@@ -4804,7 +4886,7 @@ jobs:
               纯色(0xFFFFE58A);
               c.drawCircle(x, y, r * 0.45f, 画笔);
             }
-
+          
             private void 绘制游戏场景(Canvas c) {
               if (生效地图() == 冰天雪地 && 冻结时间 > 0f) 绘制冰晶柱背景(c);
               if (生效地图() == 新春 && 龙状态 == 1) 绘制龙(c);
@@ -4845,8 +4927,8 @@ jobs:
               绘制HUD(c);
               if (冻结时间 > 0f) 绘制冻结特效(c);
             }
-
-
+          
+          
             private void 绘制灯笼鱼(Canvas c) {
               if (灯笼鱼状态 == 0) return;
               float r = 宽 * 0.040f;
@@ -4854,7 +4936,7 @@ jobs:
               c.save();
               c.translate(灯笼鱼X, 灯笼鱼Y);
               c.scale(朝向, 1f);
-
+          
               设置径向渐变(r * 0.95f, -r * 0.82f, r * 1.70f, 0xAAFFF2A2, 0x00FFF2A2);
               c.drawCircle(r * 0.95f, -r * 0.82f, r * 0.82f, 画笔);
               清除着色器();
@@ -4867,13 +4949,13 @@ jobs:
               c.drawCircle(r * 0.95f, -r * 0.82f, r * 0.24f, 画笔);
               纯色(0x99FFFFFF);
               c.drawCircle(r * 0.88f, -r * 0.88f, r * 0.09f, 画笔);
-
+          
               设置径向渐变(-r * 0.10f, -r * 0.08f, r * 1.8f, 0xFFF7B658, 0xFF7A4320);
               c.drawOval(-r * 1.18f, -r * 0.78f, r * 0.94f, r * 0.78f, 画笔);
               清除着色器();
               配置描边(0xFF5E311A, 宽 * 0.0038f);
               c.drawOval(-r * 1.18f, -r * 0.78f, r * 0.94f, r * 0.78f, 描边);
-
+          
               纯色(0xFF8D4B23);
               临时路径一.reset();
               临时路径一.moveTo(-r * 1.10f, 0);
@@ -4882,7 +4964,7 @@ jobs:
               临时路径一.lineTo(-r * 1.62f, r * 0.48f);
               临时路径一.close();
               c.drawPath(临时路径一, 画笔);
-
+          
               纯色(0xFFB06A35);
               临时路径一.reset();
               临时路径一.moveTo(-r * 0.34f, -r * 0.64f);
@@ -4896,7 +4978,7 @@ jobs:
               临时路径一.lineTo(r * 0.34f, r * 0.08f);
               临时路径一.close();
               c.drawPath(临时路径一, 画笔);
-
+          
               纯色(0xFFFFFAF0);
               c.drawOval(r * 0.12f, -r * 0.28f, r * 0.60f, r * 0.14f, 画笔);
               纯色(0xFF201510);
@@ -4908,7 +4990,7 @@ jobs:
               路径.moveTo(r * 0.16f, r * 0.18f);
               路径.quadTo(r * 0.42f, r * 0.30f, r * 0.66f, r * 0.10f);
               c.drawPath(路径, 描边);
-
+          
               c.restore();
               if (灯笼鱼光球激活) {
                 设置径向渐变(灯笼鱼光球X, 灯笼鱼光球Y, 宽 * 0.032f,
@@ -4919,7 +5001,7 @@ jobs:
                 c.drawCircle(灯笼鱼光球X, 灯笼鱼光球Y, 宽 * 0.018f, 描边);
               }
             }
-
+          
             private void 绘制氧气泡泡(Canvas c, float x, float y, float scale) {
               float r = 当前小鸟半径() * 1.45f * scale;
               配置描边(0x99D6FBFF, 宽 * 0.0034f);
@@ -4929,7 +5011,7 @@ jobs:
               纯色(0x66FFFFFF);
               c.drawCircle(x - r * 0.35f, y - r * 0.35f, r * 0.18f, 画笔);
             }
-
+          
             private void 绘制幸运星(Canvas c) {
               if (幸运星状态 == 0) return;
               c.save();
@@ -4944,7 +5026,7 @@ jobs:
               绘制星形(c, 0, 0, 宽 * 0.067f, 宽 * 0.029f, 5, 描边);
               c.restore();
             }
-
+          
             private void 绘制幸运星守护(Canvas c) {
               float fade = 限制(幸运星守护时间 / 1.2f, 0f, 1f);
               for (int i = 0; i < 6; i++) {
@@ -4961,7 +5043,7 @@ jobs:
                 c.drawCircle(x - r * 0.28f, y - r * 0.28f, r * 0.32f, 画笔);
               }
             }
-
+          
             private void 绘制幸运星光环(Canvas c) {
               float alpha = 限制(幸运星复活光环时间 / 0.35f, 0f, 1f);
               float y = 小鸟Y - 当前小鸟半径() * 1.28f;
@@ -4973,7 +5055,7 @@ jobs:
               c.drawCircle(小鸟X, y, 宽 * 0.060f, 画笔);
               清除着色器();
             }
-
+          
             private void 绘制蹿天猴(Canvas c) {
               if (蹿天猴状态 == 0) return;
               c.save();
@@ -5000,7 +5082,7 @@ jobs:
               c.drawPath(路径, 画笔);
               c.restore();
             }
-
+          
             private void 绘制虫洞(Canvas c, 虫洞 hole) {
               float pulse = 0.88f + 0.12f * (float) Math.sin(动画时间 * (hole.大型 ? 4.0f : 6.0f) + hole.相位);
               float r = hole.半径 * pulse;
@@ -5014,7 +5096,7 @@ jobs:
               纯色(0xDD0B0822);
               c.drawCircle(hole.x, hole.y, r * 0.46f, 画笔);
             }
-
+          
             private void 绘制穿越过渡(Canvas c) {
               float t = 1f - 穿越过渡时间 / Math.max(0.01f, 穿越本次总时长);
               float cx = 宽 * 0.5f;
@@ -5050,14 +5132,14 @@ jobs:
               文本(c, "穿 越 中", cx, cy + 高 * 0.020f,
                   宽 * 0.050f, 0xEEFFFFFF, Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制游龙预警(Canvas c) {
               float progress = 限制(龙预警时间 / 0.62f, 0f, 1f);
               float pulse = 0.55f + 0.45f
                   * (float) Math.sin((1f - progress) * 24f);
               float y = 龙目标Y;
               int alpha = (int) (115 + 95 * pulse);
-
+          
               // 虚线表示即将锁定的水平冲击路线。
               配置描边(Color.argb(alpha, 255, 207, 92), 宽 * 0.0042f);
               for (int i = 0; i < 12; i++) {
@@ -5065,13 +5147,13 @@ jobs:
                 float right = Math.min(宽 * 0.94f, left + 宽 * 0.045f);
                 c.drawLine(left, y, right, y, 描边);
               }
-
+          
               float edgeX = 龙方向 < 0 ? 宽 * 0.955f : 宽 * 0.045f;
               设置径向渐变(edgeX, y, 宽 * 0.075f,
                   Color.argb((int) (100 * pulse), 255, 92, 49), 0x00FF5C31);
               c.drawCircle(edgeX, y, 宽 * 0.075f, 画笔);
               清除着色器();
-
+          
               // 箭头明确告诉玩家游龙将从哪一侧冲入。
               纯色(Color.argb(alpha, 255, 226, 118));
               float dir = 龙方向 < 0 ? -1f : 1f;
@@ -5081,13 +5163,13 @@ jobs:
               路径.lineTo(edgeX - dir * 宽 * 0.018f, y + 宽 * 0.028f);
               路径.close();
               c.drawPath(路径, 画笔);
-
+          
               文本(c, "游龙来袭", 宽 * 0.5f, y - 高 * 0.035f,
                   宽 * 0.026f,
                   Color.argb((int) (220 * pulse), 255, 228, 143),
                   Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制冲刺速度线(Canvas c) {
               for (int i = 0; i < 24; i++) {
                 float y = 高 * (0.08f + ((i * 41) % 78) / 100f);
@@ -5100,7 +5182,7 @@ jobs:
                 c.drawLine(x, y, x - len, y, 描边);
               }
             }
-
+          
             private void 绘制障碍(Canvas c, 障碍 p) {
               float top = p.缺口Y - p.缺口高 * 0.5f;
               float bottom = p.缺口Y + p.缺口高 * 0.5f;
@@ -5141,13 +5223,13 @@ jobs:
                   break;
               }
             }
-
+          
             private void 绘制经典管道(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x;
               float pw = p.宽度;
               float cap = 高 * 0.026f;
               float over = pw * 0.12f;
-
+          
               // 先画柱体及其边框，再由端帽完整覆盖接口。
               // 这样柱体两侧的描边不会穿进较宽的端帽内部。
               配置多色渐变(x, 0, x + pw, 0, 经典管道渐变, null);
@@ -5161,13 +5243,13 @@ jobs:
                   pw * 0.10f, pw * 0.10f, 描边);
               c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
                   pw * 0.10f, pw * 0.10f, 描边);
-
+          
               纯色(0x99D7FF9A);
               c.drawRoundRect(x + pw * 0.18f, 0, x + pw * 0.29f,
                   Math.max(0, top - cap * 1.2f), pw * 0.05f, pw * 0.05f, 画笔);
               c.drawRoundRect(x + pw * 0.18f, bottom + cap * 1.2f,
                   x + pw * 0.29f, 地面线, pw * 0.05f, pw * 0.05f, 画笔);
-
+          
               配置渐变(x - over, 0, x + pw + over, 0,
                   0xFF217C39, 0xFF79D95A);
               c.drawRoundRect(x - over, top - cap, x + pw + over, top,
@@ -5181,7 +5263,7 @@ jobs:
               c.drawRoundRect(x - over, bottom, x + pw + over, bottom + cap,
                   pw * 0.12f, pw * 0.12f, 描边);
             }
-
+          
             private void 绘制波浪山峰(Canvas c, 障碍 p) {
               if (p.上边界 == null || p.下边界 == null) return;
               float x = p.x;
@@ -5192,7 +5274,7 @@ jobs:
               构建平滑边界路径(p, false, true);
               c.drawPath(路径, 画笔);
               清除着色器();
-
+          
               // 波峰迎光面与暗面，让它更像连续起伏的山壁而不是透明管道。
               for (int i = 0; i < p.上边界.length - 1; i++) {
                 float x1 = x + pw * i / (p.上边界.length - 1f);
@@ -5206,7 +5288,7 @@ jobs:
                 路径.lineTo(mid, Math.min(p.上边界[i], p.上边界[i + 1]) - 高 * 0.12f);
                 路径.close();
                 c.drawPath(路径, 画笔);
-
+          
                 纯色(i % 2 == 0 ? 0x443C505C : 0x5531414B);
                 路径.reset();
                 路径.moveTo(x1, p.下边界[i]);
@@ -5234,9 +5316,9 @@ jobs:
               if (p.有蛇) 绘制山峰蛇(c, p);
               if (p.有蜘蛛 && !p.蜘蛛已碰到) 绘制山峰蜘蛛(c, p);
             }
-
+          
             private void 构建平滑边界路径(障碍 p,boolean top,boolean closed) { 构建柱体轮廓(p,top,closed,路径); }
-
+          
             private void 绘制山峰蛇(Canvas c, 障碍 p) {
               float hx = 蛇头X(p);
               float hy = 蛇头Y(p);
@@ -5272,8 +5354,8 @@ jobs:
                 清除着色器();
               }
             }
-
-
+          
+          
             private void 绘制山峰蜘蛛网装饰(Canvas c, 障碍 p) {
               float 网X = p.x + p.宽度 * (0.28f + 哈希01(p.种子, 311) * 0.44f);
               boolean 网在上方 = p.蜘蛛在上方;
@@ -5302,8 +5384,8 @@ jobs:
                 c.drawPath(路径, 描边);
               }
             }
-
-
+          
+          
             private void 绘制山峰大型多边形蜘蛛网(Canvas c, 障碍 p) {
               float 网X = p.x + p.宽度 * (0.24f + 哈希01(p.种子, 733) * 0.52f);
               boolean 网在上方 = 哈希01(p.种子, 739) < 0.5f;
@@ -5312,7 +5394,7 @@ jobs:
               float 网R = Math.min(p.宽度 * 0.155f, p.缺口高 * 0.145f);
               float 网Y = 边缘Y + 方向 * 网R * 0.64f;
               int 辐条 = 8;
-
+          
               配置描边(0xD4ECF4F6, Math.max(1.1f, 宽 * 0.0018f));
               for (int i = 0; i < 辐条; i++) {
                 float a = -1.5708f + i * 6.2832f / 辐条;
@@ -5338,8 +5420,8 @@ jobs:
               c.drawLine(网X + 网R * 0.70f, 网Y - 方向 * 网R * 0.70f,
                   网X + 网R * 1.05f, 边缘Y, 描边);
             }
-
-
+          
+          
             private void 绘制山峰蜘蛛(Canvas c, 障碍 p) {
               float x = 蜘蛛X(p);
               float y = 蜘蛛Y(p);
@@ -5392,9 +5474,9 @@ jobs:
                 清除着色器();
               }
             }
-
+          
             private void 绘制冰柱(Canvas c, 障碍 p, float top, float bottom) { 绘制切面晶体(c,p,0); }
-
+          
             private void 绘制丛林木柱(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x;
               float pw = p.宽度;
@@ -5406,7 +5488,7 @@ jobs:
               c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
                   pw * 0.18f, pw * 0.18f, 画笔);
               清除着色器();
-
+          
               配置描边(0xCC2A1B16, 宽 * 0.0036f);
               float topLineEnd = top - capH * 0.55f;
               float bottomLineStart = bottom + capH * 0.55f;
@@ -5417,7 +5499,7 @@ jobs:
                 c.drawLine(xx, bottomLineStart,
                     xx + (i % 2 == 0 ? -pw * 0.07f : pw * 0.05f), 地面线, 描边);
               }
-
+          
               配置描边(0xCC241711, 宽 * 0.0035f);
               c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
                   pw * 0.18f, pw * 0.18f, 描边);
@@ -5433,46 +5515,70 @@ jobs:
                   pw * 0.14f, pw * 0.14f, 描边);
               c.drawRoundRect(x - over, bottom, x + pw + over, bottom + capH,
                   pw * 0.14f, pw * 0.14f, 描边);
-
-              配置描边(0xFF2C8957, 宽 * 0.008f);
-              路径.reset();
-              路径.moveTo(x + pw * 0.12f, top - 高 * 0.095f);
-              路径.cubicTo(x - pw * 0.35f, top - 高 * 0.06f,
-                  x + pw * 0.35f, top - 高 * 0.02f, x - pw * 0.06f, top + 高 * 0.018f);
-              c.drawPath(路径, 描边);
-              路径.reset();
-              路径.moveTo(x + pw * 0.88f, bottom + 高 * 0.095f);
-              路径.cubicTo(x + pw * 1.32f, bottom + 高 * 0.07f,
-                  x + pw * 0.65f, bottom + 高 * 0.03f, x + pw * 1.05f, bottom);
-              c.drawPath(路径, 描边);
-
+          
               for (int side = 0; side < 2; side++) {
-                float edgeY = side == 0 ? top : bottom;
+                float edge = side == 0 ? top : bottom;
                 float dir = side == 0 ? -1f : 1f;
-                // 叶片本身会伸出木柱左右边缘，裁剪范围要覆盖完整叶片，避免右侧像被硬切掉。
-                c.save(); c.clipRect(x-pw*.65f,side==0?0:bottom,x+pw*1.65f,side==0?top:地面线);
-                纯色(0xFF286B49);
-                for (int i = 0; i < 6; i++) {
-                  float lx = x - pw * 0.22f + i * pw * 0.25f;
-                  c.drawOval(lx, edgeY + dir * 高 * 0.016f - pw * 0.12f,
-                      lx + pw * 0.45f, edgeY + dir * 高 * 0.016f + pw * 0.12f, 画笔);
+                // 植物只生长在木柱一侧，不伸入真实通行间隙。
+                c.save(); c.clipRect(x - pw * 0.65f, side == 0 ? 0 : bottom,
+                    x + pw * 1.65f, side == 0 ? top : 地面线);
+                c.translate(x + pw * 0.5f, edge); c.scale(1f, dir);
+                for (int stem = -1; stem <= 1; stem += 2) {
+                  float stemH = 高 * (0.066f + 哈希01(p.种子 + side * 31, stem + 4) * 0.025f);
+                  配置描边(0xFF306C45, 宽 * 0.0031f);
+                  路径.reset(); 路径.moveTo(-stem * pw * 0.06f, 高 * 0.012f);
+                  路径.quadTo(stem * pw * 0.20f, stemH * 0.58f, stem * pw * 0.52f, stemH);
+                  c.drawPath(路径, 描边);
+                  for (int j = 0; j < 5; j++) {
+                    float t = 0.17f + j * 0.17f;
+                    float lx = stem * pw * (-0.06f + t * 0.52f + t * t * 0.06f);
+                    float ly = 高 * 0.012f * (1f - t) + stemH * t;
+                    float len = pw * (0.30f - j * 0.025f)
+                        * (0.87f + 哈希01(p.种子 + side * 47, j * 29 + stem + 5) * 0.24f);
+                    int col = 调亮(0xFF3E925A, -0.10f + j * 0.028f + (stem > 0 ? 0.035f : 0f));
+                    绘制丛林叶片(c, lx, ly, len, len * 0.29f,
+                        stem > 0 ? 8f + j * 7f : 172f - j * 7f, col, true);
+                    绘制丛林叶片(c, lx, ly, len * 0.76f, len * 0.19f,
+                        stem > 0 ? 108f - j * 5f : 72f + j * 5f, 调亮(col, -0.06f), false);
+                  }
                 }
-                for (int i = 0; i < 15; i++) {
-                  float rx = 哈希01(p.种子 + side * 31, i * 17 + 3);
-                  float ry = 哈希01(p.种子 + side * 47, i * 23 + 5);
-                  float lx = x + pw * (-0.24f + rx * 1.48f);
-                  float ly = edgeY + dir * 高 * (0.006f + ry * 0.074f);
-                  float leafL = pw * (0.16f + 哈希01(p.种子, i * 29 + side) * 0.16f);
-                  float leafW = leafL * (0.34f + 哈希01(p.种子, i * 37 + 9) * 0.18f);
-                  float angle = -65f + 哈希01(p.种子 + side * 71, i * 41) * 130f;
-                  int col = 调亮(0xFF3FA267,
-                      -0.12f + 哈希01(p.种子, i * 43 + 2) * 0.25f);
-                  绘制叶片(c, lx, ly, leafL, leafW, angle, col);
+                // 三片较宽的新叶遮住枝梗根部，轮廓保留呼吸空间。
+                for (int j = 0; j < 3; j++) {
+                  float angle = 36f + j * 54f;
+                  绘制丛林叶片(c, pw * (j - 1) * 0.12f, 高 * 0.014f,
+                      pw * (0.43f - j * 0.018f), pw * 0.14f, angle,
+                      j == 1 ? 0xFF58A56B : 0xFF397E51, true);
                 }
                 c.restore();
               }
             }
-
+          
+            private void 绘制丛林叶片(Canvas c, float x, float y, float len, float half,
+                            float angle, int color, boolean veins) {
+              c.save(); c.translate(x, y); c.rotate(angle);
+              纯色(调亮(color, -0.08f));
+              路径.reset(); 路径.moveTo(0, 0);
+              路径.cubicTo(len * 0.21f, -half * 0.86f, len * 0.72f, -half * 1.08f, len, -half * 0.16f);
+              路径.cubicTo(len * 0.70f, half * 0.85f, len * 0.22f, half * 0.72f, 0, 0);
+              路径.close(); c.drawPath(路径, 画笔);
+              纯色(color); 路径.reset(); 路径.moveTo(0, 0);
+              路径.cubicTo(len * 0.21f, -half * 0.86f, len * 0.72f, -half * 1.08f, len, -half * 0.16f);
+              路径.quadTo(len * 0.48f, -half * 0.20f, 0, 0);
+              路径.close(); c.drawPath(路径, 画笔);
+              if (veins) {
+                配置描边(设透明(调亮(color, 0.25f), Color.alpha(color) * 108 / 255), 宽 * 0.0011f);
+                路径.reset(); 路径.moveTo(len * 0.08f, 0);
+                路径.quadTo(len * 0.52f, -half * 0.12f, len * 0.90f, -half * 0.15f);
+                for (int j = 1; j <= 3; j++) {
+                  float bx = len * (0.18f + j * 0.17f);
+                  路径.moveTo(bx, -half * 0.08f);
+                  路径.quadTo(bx + len * 0.08f, -half * 0.38f, bx + len * 0.14f, -half * 0.67f);
+                }
+                c.drawPath(路径, 描边);
+              }
+              c.restore();
+            }
+          
             private void 绘制叶片(Canvas c, float x, float y, float rx, float ry,
                        float angle, int color) {
               c.save();
@@ -5495,7 +5601,7 @@ jobs:
               }
               c.restore();
             }
-
+          
             private void 绘制花境藤柱(Canvas c, 障碍 p, float top, float bottom) {
               // 出生时的几何形状保持到离屏；四季只渐变装饰，不在飞行途中改变碰撞体。
               float phase = 四季相位*4f;
@@ -5524,7 +5630,7 @@ jobs:
                 绘制生长层(c,p,p.秋叶缓存,1f,缓动((phase-2f)/.22f));
               }
             }
-
+          
             private void 绘制金色麦浪柱(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x;
               float pw = p.宽度;
@@ -5534,7 +5640,7 @@ jobs:
               c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
                   pw * 0.18f, pw * 0.18f, 画笔);
               清除着色器();
-
+          
               // 柱体内部画出成束麦秆，不再是一整团单调金色。
               配置描边(0x88FFE9A0, Math.max(1.4f, pw * 0.018f));
               for (int i = 1; i <= 6; i++) {
@@ -5543,7 +5649,7 @@ jobs:
                 c.drawLine(xx, -高 * 0.02f, xx + sway, top, 描边);
                 c.drawLine(xx - sway, bottom, xx, 地面线 + 高 * 0.02f, 描边);
               }
-
+          
               // 深浅交错的斜向缠绕束，让管道像被麦穗和草绳真正包裹起来。
               for (int side = 0; side < 2; side++) {
                 float start = side == 0 ? 高 * 0.035f : bottom + 高 * 0.035f;
@@ -5560,13 +5666,13 @@ jobs:
                       x + pw * 1.05f, yy + 高 * 0.012f, 描边);
                 }
               }
-
+          
               配置描边(0xFF6B3C19, 宽 * 0.0042f);
               c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
                   pw * 0.18f, pw * 0.18f, 描边);
               c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
                   pw * 0.18f, pw * 0.18f, 描边);
-
+          
               for (int side = 0; side < 2; side++) {
                 float edge = side == 0 ? top : bottom;
                 float dir = side == 0 ? -1f : 1f;
@@ -5581,7 +5687,7 @@ jobs:
                 路径.lineTo(x + pw * 1.12f, edge);
                 路径.close();
                 c.drawPath(路径, 画笔);
-
+          
                 // 通道边缘排列清晰可辨的麦穗，左右还会有少量外伸麦穗改变轮廓。
                 for (int i = 0; i < 11; i++) {
                   float sx = x - pw * 0.06f + i * pw * 0.112f;
@@ -5597,7 +5703,7 @@ jobs:
                     高 * 0.050f, dir, 31f, 0xFFFFE68A);
               }
             }
-
+          
             private void 绘制麦穗(Canvas c, float x, float y, float length,
                        float direction, float angle, int color) {
               c.save();
@@ -5617,16 +5723,16 @@ jobs:
                   x, y + direction * length * 0.98f, 描边);
               c.restore();
             }
-
+          
             private void 绘制冬季水晶柱(Canvas c, 障碍 p, float top, float bottom) { 绘制切面晶体(c,p,1); }
-
+          
             private void 绘制星河晶柱(Canvas c, 障碍 p, float top, float bottom) { 绘制切面晶体(c,p,2); }
-
+          
             private void 绘制海洋珊瑚柱(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x;
               float pw = p.宽度;
               float cap = 高 * 0.022f;
-
+          
               配置多色渐变(x, 0, x + pw, 0, 海洋珊瑚柱渐变, null);
               c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
                   pw * 0.10f, pw * 0.10f, 画笔);
@@ -5638,7 +5744,7 @@ jobs:
                   pw * 0.10f, pw * 0.10f, 描边);
               c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
                   pw * 0.10f, pw * 0.10f, 描边);
-
+          
               for (int i = 0; i < 4; i++) {
                 float bx = x + pw * (0.22f + i * 0.18f);
                 float by = top * (0.18f + i * 0.19f);
@@ -5647,7 +5753,7 @@ jobs:
                 c.drawCircle(bx + pw * 0.05f, bottom + (地面线 - bottom) * (0.18f + i * 0.18f),
                     宽 * (0.0038f + (i % 2) * 0.0018f), 画笔);
               }
-
+          
               // 端帽最后绘制，覆盖柱体接口和边框，避免出现内部穿线。
               配置渐变(x - pw * 0.10f, 0, x + pw * 1.10f, 0,
                   0xFF1A6E8E, 0xFF9CF4FF);
@@ -5662,12 +5768,12 @@ jobs:
               c.drawRoundRect(x - pw * 0.10f, bottom, x + pw * 1.10f, bottom + cap,
                   pw * 0.12f, pw * 0.12f, 描边);
             }
-
+          
             private void 绘制新春门柱(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x;
               float pw = p.宽度;
               float cap = 高 * 0.023f;
-
+          
               配置多色渐变(x, 0, x + pw, 0, 新春门柱渐变, null);
               c.drawRoundRect(x, -高 * 0.02f, x + pw, top,
                   pw * 0.12f, pw * 0.12f, 画笔);
@@ -5679,7 +5785,7 @@ jobs:
                   pw * 0.12f, pw * 0.12f, 描边);
               c.drawRoundRect(x, bottom, x + pw, 地面线 + 高 * 0.02f,
                   pw * 0.12f, pw * 0.12f, 描边);
-
+          
               纯色(0xAAFFD982);
               for (int i = 0; i < 4; i++) {
                 float yy1 = top * (0.15f + i * 0.20f);
@@ -5687,7 +5793,7 @@ jobs:
                 c.drawCircle(x + pw * 0.50f, yy1, pw * 0.08f, 画笔);
                 c.drawCircle(x + pw * 0.50f, yy2, pw * 0.08f, 画笔);
               }
-
+          
               // 金色端帽必须最后覆盖柱体边框，否则柱体的两条竖线会穿进端帽内部。
               配置渐变(x - pw * 0.15f, 0, x + pw * 1.15f, 0,
                   0xFFFFD174, 0xFFB77924);
@@ -5701,12 +5807,12 @@ jobs:
                   pw * 0.10f, pw * 0.10f, 描边);
               c.drawRoundRect(x - pw * 0.15f, bottom, x + pw * 1.15f, bottom + cap,
                   pw * 0.10f, pw * 0.10f, 描边);
-
+          
               if (p.有福字) 绘制福字(c, p, top, bottom);
               if (p.有鞭炮) 绘制鞭炮串(c, p, top);
             }
-
-
+          
+          
             private void 绘制福字(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x + p.宽度 * 0.50f;
               float y;
@@ -5730,7 +5836,7 @@ jobs:
               文本(c, "福", x, y + s * 0.38f, s * 1.18f,
                   0xFFFFD978, Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制鞭炮串(Canvas c, 障碍 p, float top) {
               float x = p.x + p.宽度 * 0.83f;
               float startY = top - 高 * 0.078f;
@@ -5750,7 +5856,7 @@ jobs:
                 c.restore();
               }
             }
-
+          
             private void 绘制破碎残段(Canvas c, 障碍 p, float top, float bottom) {
               int color = 地图主色();
               纯色(调亮(color, -0.18f));
@@ -5765,7 +5871,7 @@ jobs:
               c.drawLine(p.x + p.宽度 * 0.72f, bottom + 高 * 0.09f,
                   p.x + p.宽度 * 0.42f, bottom + 高 * 0.13f, 描边);
             }
-
+          
             private void 绘制果实(Canvas c, 果实 f) {
               float y = f.y + (float) Math.sin(动画时间 * 3 + f.相位) * 高 * 0.006f;
               float r = 宽 * 0.031f;
@@ -5775,7 +5881,7 @@ jobs:
               c.translate(f.x, y);
               c.scale(appear, appear);
               c.rotate((float) Math.sin(f.旋转) * 7f);
-
+          
               int 主色;
               if (f.类型 == 冲刺果实) 主色 = 0xFFFF4E42;
               else if (f.类型 == 冻结果实) 主色 = 0xFF56CFFF;
@@ -5789,7 +5895,7 @@ jobs:
                 HSV缓存[2] = 1f;
                 主色 = Color.HSVToColor(HSV缓存);
               }
-
+          
               设置径向渐变(0, 0, r * 2.2f,
                   设透明(主色, 115), 设透明(主色, 0));
               c.drawCircle(0, 0, r * 2.2f, 画笔);
@@ -5801,14 +5907,14 @@ jobs:
               路径.quadTo(r * 0.28f, -r * 0.48f, -r * 0.10f, -r * 0.74f);
               路径.close();
               c.drawPath(路径, 画笔);
-
+          
               设置径向渐变(-r * 0.28f, -r * 0.28f, r * 1.35f,
                   调亮(主色, 0.28f), 调亮(主色, -0.20f));
               c.drawCircle(0, 0, r, 画笔);
               清除着色器();
               配置描边(调亮(主色, -0.36f), r * 0.10f);
               c.drawCircle(0, 0, r, 描边);
-
+          
               if (f.类型 == 冲刺果实) {
                 纯色(0xFFFFF0A2);
                 路径.reset();
@@ -5870,7 +5976,7 @@ jobs:
               }
               c.restore();
             }
-
+          
             private void 绘制小鸟(Canvas c, float x, float y, float scale,
                        boolean 菜单鸟, int 皮肤, boolean 花朵鸟) {
               boolean 跟班鸟 = !菜单鸟 && 花朵鸟 && !花鸟接管中;
@@ -5886,7 +5992,7 @@ jobs:
               float wing = 跟班鸟
                   ? .22f + .78f * (float)Math.sin((1f-花鸟拍翅时间/.20f)*Math.PI*2)
                   : 0.42f + 0.58f * (float) Math.sin(动画时间 * 振翅频率);
-
+          
               if (显示状态特效 && (无敌时间 > 0f || 冲刺时间 > 0f)) {
                 float pulse = 1f + 0.08f * (float) Math.sin(动画时间 * 9f);
                 HSV缓存[0] = (float) ((动画时间 * 105f) % 360f);
@@ -5909,7 +6015,7 @@ jobs:
                   绘制星形(c, sx, sy, r * 0.14f, r * 0.055f, 4, 画笔);
                 }
               }
-
+          
               if (显示状态特效 && 护盾可挡 && 护盾时间 > 0f) {
                 float pulse = 1f + 0.05f * (float) Math.sin(动画时间 * 8.5f);
                 设置径向渐变(0, 0, r * 2.35f, 0x3C7AFFF0, 0x007AFFF0);
@@ -5920,7 +6026,7 @@ jobs:
                 配置描边(0xAA66FFE2, r * 0.10f);
                 绘制六边形(c, 0, 0, r * 1.70f * pulse, 描边);
               }
-
+          
               int bodyLight;
               int bodyDark;
               int wingColor;
@@ -5953,7 +6059,7 @@ jobs:
                 bodyDark = 混色(bodyDark, 0xFF4F8A42, poison);
                 wingColor = 混色(wingColor, 0xFF83BE55, poison);
               }
-
+          
               // 尾羽先画在身体后方，并明确向左后方伸展。
               配置描边(outline, r * 0.10f);
               纯色(bodyDark);
@@ -5971,13 +6077,13 @@ jobs:
               路径.close();
               c.drawPath(路径, 画笔);
               c.drawPath(路径, 描边);
-
+          
               配置描边(outline, r * 0.11f);
               设置径向渐变(-r * 0.22f, -r * 0.28f, r * 1.60f, bodyLight, bodyDark);
               c.drawOval(-r * 1.10f, -r * 0.76f, r * 1.05f, r * 0.80f, 画笔);
               清除着色器();
               c.drawOval(-r * 1.10f, -r * 0.76f, r * 1.05f, r * 0.80f, 描边);
-
+          
               纯色(wingColor);
               路径.reset();
               路径.moveTo(-r * 0.10f, r * 0.04f);
@@ -5988,7 +6094,7 @@ jobs:
               路径.close();
               c.drawPath(路径, 画笔);
               c.drawPath(路径, 描边);
-
+          
               纯色(Color.WHITE);
               c.drawCircle(r * 0.48f, -r * 0.20f, r * 0.44f, 画笔);
               配置描边(outline, r * 0.085f);
@@ -5997,7 +6103,7 @@ jobs:
               c.drawCircle(r * 0.62f, -r * 0.16f, r * 0.16f, 画笔);
               纯色(Color.WHITE);
               c.drawCircle(r * 0.68f, -r * 0.22f, r * 0.045f, 画笔);
-
+          
               纯色(0xFFFF7A1B);
               路径.reset();
               路径.moveTo(r * 0.84f, 0);
@@ -6007,11 +6113,11 @@ jobs:
               c.drawPath(路径, 画笔);
               配置描边(0xFF8B430E, r * 0.08f);
               c.drawPath(路径, 描边);
-
+          
               if (花朵鸟) 绘制花冠(c, -r * 0.02f, -r * 0.90f, r * 0.31f);
               c.restore();
             }
-
+          
             private void 绘制花冠(Canvas c, float x, float y, float r) {
               配置描边(0xFF4E9A54, r * 0.13f);
               路径.reset();
@@ -6023,7 +6129,7 @@ jobs:
                 绘制小花(c, cx, y, r * 0.42f, i == 0 ? 0xFFFF7FB3 : 0xFFFFB5D1);
               }
             }
-
+          
             private void 绘制猎手(Canvas c) {
               if (猎手状态 == 0) return;
               if (猎手状态 == 1) {
@@ -6083,7 +6189,7 @@ jobs:
                 c.restore();
               }
             }
-
+          
             private void 绘制龙(Canvas c) {
               if (龙状态 == 0) return;
               boolean 背景龙 = 龙状态 == 1;
@@ -6093,7 +6199,7 @@ jobs:
               int layer = c.saveLayerAlpha(0, 0, 宽, 高, 背景龙 ? 126 : 255);
               c.translate(龙X, 龙Y);
               c.rotate((float) Math.toDegrees(Math.atan2(龙速度Y, speedX)));
-
+          
               配置描边(背景龙 ? 0xFF5A2854 : 0xFF7C1D28, r * 0.52f);
               路径.reset();
               路径.moveTo(r * 0.10f, 0);
@@ -6106,7 +6212,7 @@ jobs:
               c.drawPath(路径, 描边);
               配置描边(背景龙 ? 0xFFC37FA7 : 0xFFFFA13E, r * 0.30f);
               c.drawPath(路径, 描边);
-
+          
               纯色(背景龙 ? 0xFFB87B9D : 0xFFFFD069);
               for (int i = 1; i <= 7; i++) {
                 float sx = -r * (0.32f + i * 0.48f);
@@ -6118,7 +6224,7 @@ jobs:
                 路径.close();
                 c.drawPath(路径, 画笔);
               }
-
+          
               纯色(背景龙 ? 0xFFB67F9F : 0xFFFFBE5E);
               路径.reset();
               路径.moveTo(-r * 3.98f, -r * 0.02f);
@@ -6127,7 +6233,7 @@ jobs:
               路径.lineTo(-r * 4.58f, r * 0.42f);
               路径.close();
               c.drawPath(路径, 画笔);
-
+          
               设置径向渐变(r * 0.10f, -r * 0.10f, r * 1.25f,
                   背景龙 ? 0xFFD885A6 : 0xFFFF6D4D,
                   背景龙 ? 0xFF6C2E60 : 0xFF932434);
@@ -6135,11 +6241,11 @@ jobs:
               清除着色器();
               配置描边(背景龙 ? 0xFF4D254A : 0xFF681722, r * 0.09f);
               c.drawOval(-r * 0.45f, -r * 0.55f, r * 1.08f, r * 0.58f, 描边);
-
+          
               配置描边(背景龙 ? 0xFFE1BFD0 : 0xFFFFE09A, r * 0.09f);
               c.drawLine(r * 0.02f, -r * 0.46f, -r * 0.10f, -r * 0.95f, 描边);
               c.drawLine(r * 0.42f, -r * 0.42f, r * 0.68f, -r * 0.88f, 描边);
-
+          
               纯色(0xFFFFFAEE);
               c.drawOval(r * 0.36f, -r * 0.32f, r * 0.66f, -r * 0.08f, 画笔);
               纯色(0xFF21181D);
@@ -6147,7 +6253,7 @@ jobs:
               纯色(背景龙 ? 0xFF5A2851 : 0xFF6A1C25);
               c.drawCircle(r * 0.86f, r * 0.06f, r * 0.06f, 画笔);
               c.drawCircle(r * 0.72f, r * 0.11f, r * 0.045f, 画笔);
-
+          
               配置描边(背景龙 ? 0xFFE3B8CE : 0xFFFFD970, r * 0.065f);
               路径.reset();
               路径.moveTo(r * 0.82f, 0);
@@ -6157,10 +6263,10 @@ jobs:
               路径.moveTo(r * 0.82f, r * 0.14f);
               路径.cubicTo(r * 1.36f, r * 0.36f, r * 1.78f, r * 0.34f, r * 2.18f, r * 0.18f);
               c.drawPath(路径, 描边);
-
+          
               c.restoreToCount(layer);
             }
-
+          
             private void 绘制特殊流星(Canvas c) {
               if (流星状态 == 0) return;
               float angle = (float) Math.toDegrees(Math.atan2(流星速度Y, 流星速度X));
@@ -6192,7 +6298,7 @@ jobs:
               c.drawCircle(r * 0.28f, -r * 0.18f, r * 0.14f, 画笔);
               c.restore();
             }
-
+          
             private void 绘制粒子(Canvas c) {
               for (粒子 p : 粒子组) {
                 float margin = p.半径 * 2f;
@@ -6211,7 +6317,7 @@ jobs:
                 }
               }
             }
-
+          
             private void 绘制浮字(Canvas c) {
               for (浮字 f : 浮字组) {
                 if (f.y < -高 * 0.08f || f.y > 高 * 1.08f) continue;
@@ -6221,7 +6327,7 @@ jobs:
                     Paint.Align.CENTER, true);
               }
             }
-
+          
             private void 绘制冰晶柱背景(Canvas c) {
               float 强 = 限制(冻结时间 / 0.55f, 0f, 1f);
               int light = Color.argb((int) (145 * 强), 226, 250, 255);
@@ -6252,14 +6358,14 @@ jobs:
                 清除着色器();
               }
             }
-
+          
             private void 绘制冻结特效(Canvas c) {
               float 强 = 限制(冻结时间 / 0.45f, 0f, 1f);
               int alpha = (int) ((生效地图() == 冰天雪地 ? 48 : 38) * 强);
               渐变矩形(c, 0, 0, 宽, 高,
                   Color.argb(alpha, 72, 185, 255),
                   Color.argb(alpha + 13, 178, 238, 255), true);
-
+          
               // 中央大型雪花缓慢旋转。
               c.save();
               c.rotate((float) (动画时间 * 16f), 宽 * 0.5f, 高 * 0.47f);
@@ -6270,7 +6376,7 @@ jobs:
                   Color.argb((int) (34 * 强), 225, 249, 255), 0x00E1F9FF);
               c.drawCircle(宽 * 0.5f, 高 * 0.47f, 宽 * 0.25f, 画笔);
               清除着色器();
-
+          
               // 多层精细雪花飘落。
               for (int i = 0; i < 25; i++) {
                 float x = 平滑循环位置(i * 97f + (float) 动画时间 * 宽 * (0.020f + (i % 4) * 0.006f),
@@ -6285,7 +6391,7 @@ jobs:
                     宽 * 0.0020f);
                 c.restore();
               }
-
+          
               // 冰晶边缘与角落。
               配置描边(Color.argb((int) (160 * 强), 223, 250, 255), 宽 * 0.0048f);
               for (int i = 0; i < 7; i++) {
@@ -6306,7 +6412,7 @@ jobs:
                 c.restore();
               }
             }
-
+          
             private void 绘制雪花(Canvas c, float x, float y, float r, int color, float stroke) {
               天气画笔.setShader(null); 天气画笔.setColor(color);
               天气画笔.setStyle(Paint.Style.STROKE); 天气画笔.setStrokeCap(Paint.Cap.ROUND);
@@ -6315,7 +6421,7 @@ jobs:
               c.drawPath(获取雪花轮廓(1), 天气画笔);
               c.restore(); 天气画笔.setStyle(Paint.Style.FILL);
             }
-
+          
             private void 更新HUD文字缓存() {
               int 时间十分值 = Math.round(Math.max(0f, 经过秒数) * 10f);
               if (HUD时间十分值 != 时间十分值) {
@@ -6346,7 +6452,7 @@ jobs:
                 HUD最高分文本 = (困难模式 ? "困难最高分 " : "本图最高分 ") + 最高分;
               }
             }
-
+          
             private String 效果倒计时文本(int 类型, String 前缀, float 时间) {
               int 刻度 = Math.round(Math.max(0f, 时间) * 10f);
               int key = 类型 * 1000003 + 刻度;
@@ -6358,7 +6464,7 @@ jobs:
               }
               return 效果文字缓存[index];
             }
-
+          
             private void 绘制HUD(Canvas c) {
               更新HUD文字缓存();
               float pad = 宽 * 0.028f;
@@ -6388,7 +6494,7 @@ jobs:
               c.drawRoundRect(宽 * 0.932f, 高 * 0.038f,
                   宽 * 0.932f + barW, 高 * 0.063f,
                   barW * 0.4f, barW * 0.4f, 画笔);
-
+          
               float heartY = 高 * 0.102f;
               for (int i = 0; i < Math.max(设定生命, 花鸟接管中 ? 1 : 0); i++) {
                 float hx = 宽 * (0.875f - i * 0.075f);
@@ -6398,7 +6504,7 @@ jobs:
               if (花鸟复活可用) {
                 绘制小花(c, 宽 * 0.94f, 高 * 0.102f, 宽 * 0.014f, 0xFFFF94C4);
               }
-
+          
               文本(c, HUD速度积分文本,
                   宽 * 0.03f, 高 * 0.105f, 宽 * 0.024f,
                   0xDDEBFAFF, Paint.Align.LEFT, true);
@@ -6415,7 +6521,7 @@ jobs:
                   barLeft + (barRight - barLeft) * progress,
                   barTop + 高 * 0.006f, 高 * 0.003f, 高 * 0.003f, 画笔);
               清除着色器();
-
+          
               float effectY = 高 * 0.145f;
               float effectX = 宽 * 0.03f;
               if (冲刺时间 > 0f) effectX = 绘制效果徽章(c, effectX, effectY,
@@ -6441,7 +6547,7 @@ jobs:
                 绘制效果徽章(c, effectX, effectY,
                     效果倒计时文本(11, "花鸟缓冲 ", 花鸟保护时间), 0xDDAF4A7D);
               }
-
+          
               if (设定生命 == 1) {
                 文本(c, HUD最高分文本,
                     宽 * 0.97f, 高 * 0.132f, 宽 * 0.022f,
@@ -6468,7 +6574,7 @@ jobs:
                     Paint.Align.CENTER, true);
               }
             }
-
+          
             private float 绘制效果徽章(Canvas c, float x, float y, String text, int color) {
               准备填充();
               画笔.setTextSize(宽 * 0.022f);
@@ -6480,7 +6586,7 @@ jobs:
                   宽 * 0.021f, Color.WHITE, Paint.Align.CENTER, true);
               return x + tw + 宽 * 0.012f;
             }
-
+          
             private void 更新菜单文字缓存() {
               int 最高分 = 读取最高分(当前地图);
               if (菜单文字地图 != 当前地图 || 菜单最高分缓存值 != 最高分) {
@@ -6499,7 +6605,7 @@ jobs:
                     + "/8 · 奇异果实与幸运星";
               }
             }
-
+          
             private void 绘制菜单(Canvas c) {
               更新菜单文字缓存();
               // 菜单直接展示地图原本的明亮背景，不再覆盖灰黑渐变。
@@ -6517,25 +6623,25 @@ jobs:
               配置描边(0x99FFFFFF, 宽 * 0.003f);
               c.drawOval(成就按钮, 描边);
               绘制皇冠图标(c, 成就按钮);
-
+          
               纯色(0x45FFFFFF);
               c.drawOval(音效按钮, 画笔);
               配置描边(0x99FFFFFF, 宽 * 0.003f);
               c.drawOval(音效按钮, 描边);
               绘制喇叭图标(c, 音效按钮);
-
+          
               纯色(0x45FFFFFF);
               c.drawOval(问号按钮, 画笔);
               配置描边(0x99FFFFFF, 宽 * 0.003f);
               c.drawOval(问号按钮, 描边);
               文本(c, "?", 问号按钮.centerX(), 问号按钮.centerY() + 宽 * 0.012f,
                   宽 * 0.038f, Color.WHITE, Paint.Align.CENTER, true);
-
+          
               绘制皮肤轮播(c);
               文本(c, "选择地图", 宽 * 0.075f, 高 * 0.289f,
                   宽 * 0.030f, Color.WHITE, Paint.Align.LEFT, true);
               for (int i = 0; i < 地图卡数量; i++) 绘制地图卡(c, i, 地图按钮[i]);
-
+          
               // 生命值区域压缩为原来约一半高度。
               绘制玻璃框(c, 宽 * 0.18f, 高 * 0.638f,
                   宽 * 0.82f, 高 * 0.706f, 0x72061522);
@@ -6557,7 +6663,7 @@ jobs:
                     宽 * 0.5f, 高 * 0.700f, 宽 * 0.0180f,
                     0xFFFFB98C, Paint.Align.CENTER, true);
               }
-
+          
               文本(c, 菜单说明覆盖时间 > 0f ? 菜单说明覆盖 : 地图说明文字(), 宽 * 0.5f, 高 * 0.758f,
                   宽 * 0.023f, 0xE5E7F7FF, Paint.Align.CENTER, false);
               绘制主按钮(c, 开始按钮, "开始飞翔");
@@ -6571,7 +6677,7 @@ jobs:
               else if (显示成就) 绘制成就面板(c);
               else if (显示音效设置) 绘制音效设置面板(c);
             }
-
+          
             private void 绘制困难模式背景覆盖(Canvas c) {
               if (困难模式过渡 <= 0.001f) return;
               float sweep = 宽 * 缓动(困难模式过渡);
@@ -6585,7 +6691,7 @@ jobs:
               c.drawRect(0f, 0f, sweep, 高, 画笔);
               c.restore();
             }
-
+          
             private void 绘制困难模式按钮(Canvas c) {
               int fill = 困难模式 ? 0xD49A241E : 0xA04B2630;
               int stroke = 困难模式 ? 0xFFFF8A4D : 0xAAE8A6A0;
@@ -6597,7 +6703,7 @@ jobs:
                   困难模式按钮.centerX(), 困难模式按钮.centerY() + 宽 * 0.010f,
                   宽 * 0.0235f, Color.WHITE, Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制皮肤轮播(Canvas c) {
               float centerY = 高 * 0.205f + (float) Math.sin(动画时间 * 2.2) * 高 * 0.006f;
               if (皮肤切换进度 >= 1f) {
@@ -6624,7 +6730,7 @@ jobs:
                   宽 * 0.5f, 高 * 0.267f, 宽 * 0.023f,
                   0xD8FFFFFF, Paint.Align.CENTER, false);
             }
-
+          
             private String 地图说明文字() {
               switch (当前地图) {
                 case 经典管道: return "清新原野 · 致敬经典 · 舒缓音乐";
@@ -6648,7 +6754,7 @@ jobs:
                 default: return "";
               }
             }
-
+          
             private void 绘制地图卡(Canvas c, int map, RectF r) {
               boolean springLocked=map==新春&&!已解锁新春(), galaxyLocked=map==星河宇宙&&!已解锁星河宇宙();
               boolean unknown=map==穿越&&!已解锁穿越(), selected=map==当前地图&&!unknown;
@@ -6700,7 +6806,7 @@ jobs:
                 纯色(0xFFB3D4E8);c.drawRoundRect(tx,y,tx+(r.right-宽*.03f-tx)*Math.max(0,菜单终章收集数)/8f,y+高*.002f,高*.001f,高*.001f,画笔);
               }
             }
-
+          
             private void 绘制锁图标(Canvas c, float x, float y, float r) {
               配置描边(0xFFFFE39A, r * 0.22f);
               路径.reset();
@@ -6719,7 +6825,22 @@ jobs:
                   x + r * 0.07f, y + r * 0.72f,
                   r * 0.05f, r * 0.05f, 画笔);
             }
-
+          
+            private void 绘制旧版雪花图标(Canvas c, float x, float y, float r, int color, float stroke) {
+              配置描边(color, stroke);
+              for (int i = 0; i < 3; i++) {
+                float a = i * 1.0472f, dx = (float) Math.cos(a) * r, dy = (float) Math.sin(a) * r;
+                c.drawLine(x - dx, y - dy, x + dx, y + dy, 描边);
+                for (int sign = -1; sign <= 1; sign += 2) {
+                  float bx = x + dx * 0.55f * sign, by = y + dy * 0.55f * sign, branch = r * 0.24f;
+                  float a1 = a + (sign > 0 ? 2.45f : -0.69f);
+                  float a2 = a + (sign > 0 ? -2.45f : 0.69f);
+                  c.drawLine(bx, by, bx + (float) Math.cos(a1) * branch, by + (float) Math.sin(a1) * branch, 描边);
+                  c.drawLine(bx, by, bx + (float) Math.cos(a2) * branch, by + (float) Math.sin(a2) * branch, 描边);
+                }
+              }
+            }
+          
             private void 绘制地图图标(Canvas c, int map, float x, float y, float h) {
               if (map == 经典管道) {
                 纯色(0xFF56C95A);
@@ -6767,7 +6888,7 @@ jobs:
                   c.drawPath(路径, 描边);
                 }
               } else if (map == 冰天雪地) {
-                绘制雪花(c, x, y, 宽 * 0.043f, Color.WHITE, 宽 * 0.005f);
+                绘制旧版雪花图标(c, x, y, 宽 * 0.043f, Color.WHITE, 宽 * 0.005f);
               } else if (map == 黑暗丛林) {
                 纯色(0xFF071B18);
                 c.drawRoundRect(x - 宽 * 0.013f, y - h * 0.05f,
@@ -6825,7 +6946,7 @@ jobs:
                     0xFFDDE2EA, Paint.Align.CENTER, true);
               }
             }
-
+          
             private void 绘制游戏说明(Canvas c) {
               纯色(0xE8050B12);
               c.drawRect(0, 0, 宽, 高, 画笔);
@@ -6838,12 +6959,12 @@ jobs:
               文本(c, "×", 说明关闭按钮.centerX(),
                   说明关闭按钮.centerY() + 宽 * 0.014f,
                   宽 * 0.044f, Color.WHITE, Paint.Align.CENTER, false);
-
+          
               float y = 高 * 0.180f;
               y = 绘制说明行(c, y, "操作", "轻触上升；速度越快，单次跳跃会逐渐变低。", 0xFFFFD971);
               y = 绘制说明行(c, y, "计分", "生存和跨越均得分；单生命模式记录每图最高分。", 0xFFFFE59B);
               y = 绘制说明行(c, y, "护盾", "可抵挡管道、蛇、幽影猎手、游龙和特殊流星的一次伤害。", 0xFF79FFD0);
-
+          
               y += 高 * 0.006f;
               文本(c, "果实", 宽 * 0.105f, y,
                   宽 * 0.031f, Color.WHITE, Paint.Align.LEFT, true);
@@ -6858,7 +6979,7 @@ jobs:
                   宽 * 0.105f, y, 宽 * 0.790f, 宽 * 0.0235f,
                   0xFFEAF8FF, 高 * 0.030f);
               y += 高 * 0.045f;
-
+          
               文本(c, "七张地图", 宽 * 0.105f, y,
                   宽 * 0.034f, Color.WHITE, Paint.Align.LEFT, true);
               y += 高 * 0.042f;
@@ -6869,12 +6990,12 @@ jobs:
               y = 绘制说明行(c, y, "繁花", "四季花海，极低概率出现花朵果实。", 0xFFFFA9CF);
               y = 绘制说明行(c, y, "新春", "中国风、烟火、烟花彩蛋与游龙。", 0xFFFFD27B);
               y = 绘制说明行(c, y, "星河", "星空、背景流星与特殊流星。", 0xFFB9B2FF);
-
+          
               文本(c, "系统会尽量避免必死局出现，但仍然可能出现极为复杂的难解局面。",
                   宽 * 0.5f, 高 * 0.895f, 宽 * 0.0230f,
                   0xD5FFFFFF, Paint.Align.CENTER, false);
             }
-
+          
             private float 绘制说明行(Canvas c, float y, String title, String body, int color) {
               纯色(color);
               c.drawCircle(宽 * 0.108f, y - 宽 * 0.006f, 宽 * 0.0058f, 画笔);
@@ -6885,7 +7006,7 @@ jobs:
                   宽 * 0.0230f, 0xFFEAF5F8, 高 * 0.028f);
               return Math.max(y + 高 * 0.043f, 结束Y + 高 * 0.018f);
             }
-
+          
             private float 绘制自动换行文本(Canvas c, String text,
                           float left, float baseline, float maxWidth,
                           float size, int color, float lineHeight) {
@@ -6894,7 +7015,7 @@ jobs:
               画笔.setTextAlign(Paint.Align.LEFT);
               画笔.setTextSize(size);
               画笔.setFakeBoldText(false);
-
+          
               float y = baseline;
               int 行起点 = 0;
               float 当前行宽 = 0f;
@@ -6922,7 +7043,7 @@ jobs:
               画笔.setAlpha(255);
               return y;
             }
-
+          
             private void 绘制暂停层(Canvas c) {
               纯色(0xA8030C14);
               c.drawRect(0, 0, 宽, 高, 画笔);
@@ -6937,7 +7058,7 @@ jobs:
                   宽 * 0.5f, 高 * 0.665f, 宽 * 0.021f,
                   0xB8FFFFFF, Paint.Align.CENTER, false);
             }
-
+          
             private void 绘制结束层(Canvas c) {
               纯色(0xA8020810);
               c.drawRect(0, 0, 宽, 高, 画笔);
@@ -6965,14 +7086,14 @@ jobs:
               绘制主按钮(c, 重来按钮, "再飞一次");
               绘制次按钮(c, 返回按钮, "返回地图选择");
             }
-
+          
             private void 绘制数据列(Canvas c, float x, String label, String value) {
               文本(c, value, x, 高 * 0.525f, 宽 * 0.034f,
                   Color.WHITE, Paint.Align.CENTER, true);
               文本(c, label, x, 高 * 0.559f, 宽 * 0.022f,
                   0xAFFFFFFF, Paint.Align.CENTER, false);
             }
-
+          
             private void 绘制音效设置面板(Canvas c) {
               纯色(0xD8050B12);
               c.drawRect(0, 0, 宽, 高, 画笔);
@@ -6985,7 +7106,7 @@ jobs:
               文本(c, "×", 音效设置关闭按钮.centerX(),
                   音效设置关闭按钮.centerY() + 宽 * 0.014f,
                   宽 * 0.043f, Color.WHITE, Paint.Align.CENTER, false);
-
+          
               绘制声音选项按钮(c, 全部声音切换按钮,
                   音效开启 ? "关闭全部声音" : "开启全部声音", 音效开启);
               绘制声音选项按钮(c, 跳跃声音切换按钮,
@@ -6996,7 +7117,7 @@ jobs:
                   宽 * 0.5f, 高 * 0.690f, 宽 * 0.0195f,
                   0xCFEAF5F8, Paint.Align.CENTER, false);
             }
-
+          
             private void 绘制声音选项按钮(Canvas c, RectF r, String text, boolean 当前开启) {
               纯色(当前开启 ? 0xB522765F : 0xB56A3940);
               c.drawRoundRect(r, 高 * 0.030f, 高 * 0.030f, 画笔);
@@ -7005,7 +7126,7 @@ jobs:
               文本(c, text, r.centerX(), r.centerY() + 宽 * 0.014f,
                   宽 * 0.031f, Color.WHITE, Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制皇冠图标(Canvas c, RectF r) {
               float cx = r.centerX();
               float cy = r.centerY();
@@ -7029,8 +7150,8 @@ jobs:
               c.drawCircle(cx - rw * 0.82f, cy - rh * 0.55f, 宽 * 0.0038f, 画笔);
               c.drawCircle(cx + rw * 0.82f, cy - rh * 0.55f, 宽 * 0.0038f, 画笔);
             }
-
-
+          
+          
             private void 绘制喇叭图标(Canvas c, RectF r) {
               float cx = r.centerX();
               float cy = r.centerY();
@@ -7064,7 +7185,7 @@ jobs:
                     cx + s * 0.36f, cy + s * 0.31f, 描边);
               }
             }
-
+          
             private void 绘制成就面板(Canvas c) {
               纯色(0xE8050B12);
               c.drawRect(0, 0, 宽, 高, 画笔);
@@ -7077,7 +7198,7 @@ jobs:
               文本(c, "×", 说明关闭按钮.centerX(),
                   说明关闭按钮.centerY() + 宽 * 0.014f,
                   宽 * 0.046f, Color.WHITE, Paint.Align.CENTER, false);
-
+          
               float y = 高 * 0.225f;
               int 已显示 = 0;
               if (成就已完成("极速飞行")) {
@@ -7120,7 +7241,7 @@ jobs:
                     宽 * 0.031f, 0xDDEAF5F8, Paint.Align.CENTER, true);
               }
             }
-
+          
             private float 绘制已完成成就(Canvas c, float y, String 名称,
                           String 描述, int color) {
               临时矩形.set(宽 * 0.12f, y - 高 * 0.035f,
@@ -7140,7 +7261,7 @@ jobs:
                   0xFFEAF5F8, Paint.Align.LEFT, false);
               return y + 高 * 0.112f;
             }
-
+          
             private void 绘制成就完成提示(Canvas c) {
               float fadeIn = 限制((3.4f - 成就提示时间) / 0.25f, 0f, 1f);
               float fadeOut = 限制(成就提示时间 / 0.45f, 0f, 1f);
@@ -7157,7 +7278,7 @@ jobs:
                   宽 * 0.029f, Color.argb((int) (255 * a), 255, 223, 86),
                   Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制提示(Canvas c) {
               float a = 限制(提示时间 / 0.35f, 0f, 1f);
               float top = 高 * 0.735f;
@@ -7172,7 +7293,7 @@ jobs:
                   宽 * 0.024f, Color.argb((int) (255 * a), 255, 220, 180),
                   Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制圆按钮(Canvas c, RectF r, String text) {
               纯色(0x48FFFFFF);
               c.drawOval(r, 画笔);
@@ -7181,7 +7302,7 @@ jobs:
               文本(c, text, r.centerX(), r.centerY() + 宽 * 0.018f,
                   宽 * 0.045f, Color.WHITE, Paint.Align.CENTER, false);
             }
-
+          
             private void 绘制主按钮(Canvas c, RectF r, String text) {
               配置渐变(r.left, r.top, r.right, r.bottom,
                   0xFFFFD34E, 0xFFFF8A3D);
@@ -7192,7 +7313,7 @@ jobs:
               文本(c, text, r.centerX(), r.centerY() + 宽 * 0.016f,
                   宽 * 0.040f, 0xFF352411, Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制次按钮(Canvas c, RectF r, String text) {
               纯色(0x38FFFFFF);
               c.drawRoundRect(r, 高 * 0.030f, 高 * 0.030f, 画笔);
@@ -7201,14 +7322,14 @@ jobs:
               文本(c, text, r.centerX(), r.centerY() + 宽 * 0.014f,
                   宽 * 0.033f, Color.WHITE, Paint.Align.CENTER, true);
             }
-
+          
             private void 绘制玻璃框(Canvas c, float l, float t, float r, float b, int color) {
               纯色(color);
               c.drawRoundRect(l, t, r, b, 高 * 0.020f, 高 * 0.020f, 画笔);
               配置描边(0x48FFFFFF, 宽 * 0.0025f);
               c.drawRoundRect(l, t, r, b, 高 * 0.020f, 高 * 0.020f, 描边);
             }
-
+          
             private void 绘制爱心(Canvas c, float x, float y, float r, int color) {
               纯色(color);
               路径.reset();
@@ -7226,7 +7347,7 @@ jobs:
               纯色(设透明(Color.WHITE, 92));
               c.drawCircle(x - r * 0.40f, y - r * 0.38f, r * 0.16f, 画笔);
             }
-
+          
             private void 绘制星形(Canvas c, float cx, float cy, float outer,
                        float inner, int points, Paint paint) {
               路径.reset();
@@ -7241,7 +7362,7 @@ jobs:
               路径.close();
               c.drawPath(路径, paint);
             }
-
+          
             private void 绘制六边形(Canvas c, float cx, float cy, float r, Paint paint) {
               路径.reset();
               for (int i = 0; i < 6; i++) {
@@ -7254,7 +7375,7 @@ jobs:
               路径.close();
               c.drawPath(路径, paint);
             }
-
+          
             @Override
             public boolean onTouchEvent(MotionEvent event) {
               float x = event.getX();
@@ -7282,10 +7403,10 @@ jobs:
                   return true;
                 }
               }
-
+          
               if (event.getActionMasked() != MotionEvent.ACTION_UP || 触摸按下状态 < 0) return true;
               performClick();
-
+          
               if (触摸按下状态 == 结束) {
                 if (状态 == 结束) {
                   if (重来按钮.contains(x, y)) {
@@ -7302,7 +7423,7 @@ jobs:
                 // 无论按钮是否命中，都吞掉这次抬手，绝不继续传给菜单。
                 return true;
               }
-
+          
               if (状态 == 暂停) {
                 if (触摸按下状态 != 暂停) return true;
                 if (暂停继续按钮.contains(x, y)) {
@@ -7320,7 +7441,7 @@ jobs:
                 }
                 return true;
               }
-
+          
               if (状态 == 菜单) {
                 if (显示游戏说明 || 显示成就 || 显示音效设置) {
                   if (显示音效设置) {
@@ -7340,13 +7461,13 @@ jobs:
                   }
                   return true;
                 }
-
+          
                 if (x >= 宽 * 0.27f && x <= 宽 * 0.68f
                     && y >= 高 * 0.052f && y <= 高 * 0.112f) {
                   处理标题内测连击();
                   return true;
                 }
-
+          
                 float dx = x - 触摸起点X;
                 boolean 在皮肤区域 = 触摸起点Y > 高 * 0.140f && 触摸起点Y < 高 * 0.280f;
                 if (在皮肤区域 && Math.abs(dx) > 宽 * 0.070f) {
@@ -7362,7 +7483,7 @@ jobs:
                     return true;
                   }
                 }
-
+          
                 if (成就按钮.contains(x, y)) {
                   显示成就 = true;
                   显示游戏说明 = false;
@@ -7412,8 +7533,8 @@ jobs:
               }
               return true;
             }
-
-
+          
+          
             private void 处理标题内测连击() {
               long now = System.currentTimeMillis();
               if (标题连续点击次数 == 0 || now - 标题首次点击时间 > 2000L) {
@@ -7431,7 +7552,7 @@ jobs:
                 提示时间 = 3.0f;
               }
             }
-
+          
             private void 切换全部声音() {
               音效开启 = !音效开启;
               存档.edit().putBoolean("音效开启", 音效开启).apply();
@@ -7446,7 +7567,7 @@ jobs:
               }
               提示时间 = 1.8f;
             }
-
+          
             private void 切换跳跃声音() {
               跳跃音效开启 = !跳跃音效开启;
               存档.edit().putBoolean("跳跃音效开启", 跳跃音效开启).apply();
@@ -7454,7 +7575,7 @@ jobs:
               提示文字 = 跳跃音效开启 ? "跳跃声音已开启" : "跳跃声音已关闭";
               提示时间 = 1.8f;
             }
-
+          
             private void 切换背景声音() {
               背景声音开启 = !背景声音开启;
               存档.edit().putBoolean("背景声音开启", 背景声音开启).apply();
@@ -7463,7 +7584,7 @@ jobs:
               提示文字 = 背景声音开启 ? "背景声音已开启" : "背景声音已关闭";
               提示时间 = 1.8f;
             }
-
+          
             private void 切换困难模式() {
               if (!已解锁困难模式()) return;
               boolean 即将开启 = !困难模式;
@@ -7480,21 +7601,21 @@ jobs:
               提示文字 = 困难模式 ? "困难模式已开启 · 最高速度 8.0×" : "已恢复普通模式";
               提示时间 = 2.2f;
             }
-
+          
             private void 播放音效(int tone, int durationMs) {
               if (!音效开启 || 音效 == null || 声音已关闭) return;
               try {
                 音效.startTone(tone, durationMs);
               } catch (Exception ignored) { }
             }
-
+          
             private void 播放跳跃音效() {
               if (!音效开启 || !跳跃音效开启 || 跳跃音效 == null || 声音已关闭) return;
               try {
                 跳跃音效.startTone(ToneGenerator.TONE_PROP_BEEP, 16);
               } catch (Exception ignored) { }
             }
-
+          
             private void 切换皮肤(int direction) {
               if (皮肤切换进度 < 0.70f) return;
               旧皮肤序号 = 当前皮肤序号;
@@ -7506,13 +7627,13 @@ jobs:
               存档.edit().putInt("小鸟皮肤", 当前皮肤序号).apply();
               播放音效(ToneGenerator.TONE_PROP_ACK, 48);
             }
-
+          
             @Override
             public boolean performClick() {
               super.performClick();
               return true;
             }
-
+          
             void 系统暂停() {
               if (状态 == 游戏中) 状态 = 暂停;
               应用在前台 = false; 物理余时 = 0f; 可插值 = false;
@@ -7521,16 +7642,16 @@ jobs:
               if (跳跃音效 != null) 跳跃音效.stopTone();
               声音系统.暂停全部();
             }
-
+          
             void 系统恢复() {
               应用在前台 = true; 上帧时间 = System.nanoTime(); 物理余时 = 0f; 可插值 = false; invalidate();
             }
-
+          
             private ToneGenerator 创建提示音(int volume) {
               try { return new ToneGenerator(AudioManager.STREAM_MUSIC, volume); }
               catch (RuntimeException unavailable) { return null; }
             }
-
+          
             void 释放声音() {
               if (声音已关闭) return;
               声音已关闭 = true;
@@ -7538,7 +7659,7 @@ jobs:
               if (跳跃音效 != null) 跳跃音效.release();
               声音系统.释放();
             }
-
+          
             boolean 处理返回键() {
               invalidate(); 物理余时 = 0f; 可插值 = false;
               if (状态 == 菜单 && (显示游戏说明 || 显示成就 || 显示音效设置)) {
@@ -7562,13 +7683,13 @@ jobs:
               }
               return false;
             }
-
+          
             @Override
             protected void onDetachedFromWindow() { super.onDetachedFromWindow(); 系统暂停(); }
-
+          
             @Override
             protected void onAttachedToWindow() { super.onAttachedToWindow(); 系统恢复(); }
-
+          
             private class 程序化声音 {
               private static final int 采样率 = 16000;
               private final ExecutorService 短音效线程池 = Executors.newFixedThreadPool(4,
@@ -7590,7 +7711,7 @@ jobs:
                   .setSampleRate(采样率)
                   .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                   .build();
-
+          
               // 长背景音使用流式 AudioTrack，避免部分设备无法稳定创建大块 MODE_STATIC 循环缓冲。
               private volatile 循环流音轨 音乐轨道;
               private volatile 循环流音轨 雨声轨道;
@@ -7609,14 +7730,14 @@ jobs:
               private int 活动果实音效数;
               private final ArrayList<AudioTrack> 活动短音轨道 = new ArrayList<>(4);
               private volatile int 播放代次;
-
+          
               private final class 循环流音轨 {
                 private final AudioTrack track;
                 private final short[] samples;
                 private final Thread worker;
                 private volatile boolean running = true;
                 private volatile float targetVolume = 0f;
-
+          
                 循环流音轨(short[] pcm, int contentType, String threadName) {
                   samples = pcm;
                   AudioAttributes attributes = contentType == AudioAttributes.CONTENT_TYPE_MUSIC
@@ -7639,7 +7760,7 @@ jobs:
                   worker.setDaemon(true);
                   worker.start();
                 }
-
+          
                 private void 循环写入() {
                   int pos = 0;
                   float appliedVolume = -1f;
@@ -7657,7 +7778,7 @@ jobs:
                         try { Thread.sleep(24L); } catch (InterruptedException e) { break; }
                         continue;
                       }
-
+          
                       try {
                         if (Math.abs(volume - appliedVolume) >= 0.002f) {
                           track.setVolume(volume);
@@ -7682,17 +7803,17 @@ jobs:
                     try { track.flush(); } catch (Exception ignored) { }
                   }
                 }
-
+          
                 void 设置音量(float volume) {
                   targetVolume = 限制(volume, 0f, 1f);
                 }
-
+          
                 void 暂停() {
                   targetVolume = 0f;
                   try { track.setVolume(0f); } catch (Exception ignored) { }
                   try { track.pause(); } catch (Exception ignored) { }
                 }
-
+          
                 void 释放() {
                   running = false;
                   targetVolume = 0f;
@@ -7704,7 +7825,7 @@ jobs:
                   try { track.release(); } catch (Exception ignored) { }
                 }
               }
-
+          
               程序化声音() {
                 // 缓存完整 PCM；每次使用新轨道，暂停/恢复后不复用失效的播放状态。
                 short[][] 果实采样 = new short[7][];
@@ -7713,7 +7834,7 @@ jobs:
                   catch (Exception ignored) { 果实采样[i] = null; }
                 }
                 果实音效缓存 = 果实采样;
-
+          
                 Thread prepare = new Thread(() -> {
                   short[] 音乐采样 = null, 雨声采样 = null, 星河采样 = null;
                   short[] 雷声采样 = null;
@@ -7726,7 +7847,7 @@ jobs:
                     烟花采样 = new short[4][];
                     for (int i = 0; i < 烟花采样.length; i++) 烟花采样[i] = 生成烟花音效(i);
                   } catch (Exception ignored) { }
-
+          
                   if (已释放) return;
                   循环流音轨 music = 安全创建循环轨道(音乐采样,
                       AudioAttributes.CONTENT_TYPE_MUSIC, "小鸟小鸟-经典音乐");
@@ -7734,7 +7855,7 @@ jobs:
                       AudioAttributes.CONTENT_TYPE_SONIFICATION, "小鸟小鸟-雨声");
                   循环流音轨 galaxy = 安全创建循环轨道(星河采样,
                       AudioAttributes.CONTENT_TYPE_MUSIC, "小鸟小鸟-星河音乐");
-
+          
                   synchronized (程序化声音.this) {
                     if (已释放) {
                       释放循环轨道(music);
@@ -7754,7 +7875,7 @@ jobs:
                 prepare.setDaemon(true);
                 prepare.start();
               }
-
+          
               synchronized void 更新(float dt, boolean 正在游玩, int map, float rainAmount) {
                 if (已释放) return;
                 boolean 背景活动 = 音效开启 && 背景声音开启 && 正在游玩;
@@ -7765,18 +7886,18 @@ jobs:
                 当前雨声音量 = 靠近(当前雨声音量, 雨声目标, dt * 0.055f);
                 已应用音乐音量 = 更新循环轨道(音乐轨道, 当前音乐音量, 已应用音乐音量);
                 已应用雨声音量 = 更新循环轨道(雨声轨道, 当前雨声音量, 已应用雨声音量);
-
+          
                 boolean active = 背景活动;
                 星河音乐音量 = 靠近(星河音乐音量, active && map == 星河宇宙 ? .38f : 0f, dt * .10f);
                 已应用星河音量 = 更新循环轨道(星河音乐轨道, 星河音乐音量, 已应用星河音量);
               }
-
+          
               void 播放雷声() { 提交短音效(0, 0); }
-
+          
               void 播放果实音效(int 类型) { 提交短音效(1, 限制整数(类型, 0, 6)); }
-
+          
               void 播放烟花音效(int 类型) { 提交短音效(2, 限制整数(类型, 0, 3)); }
-
+          
               private void 提交短音效(int 类别, int 类型) {
                 final boolean 是果实 = 类别 == 1;
                 final int 本次代次;
@@ -7823,11 +7944,11 @@ jobs:
                   释放短音效槽位(是果实);
                 }
               }
-
+          
               private boolean 本次播放有效(int generation) {
                 return !已释放 && generation == 播放代次 && !Thread.currentThread().isInterrupted();
               }
-
+          
               private void 播放完整短音效(short[] samples, float volume, int generation)
                   throws InterruptedException {
                 AudioTrack track = null;
@@ -7862,7 +7983,7 @@ jobs:
                   释放短轨道(track);
                 }
               }
-
+          
               synchronized void 暂停背景() {
                 当前音乐音量 = 当前雨声音量 = 0f;
                 星河音乐音量 = 0f;
@@ -7872,7 +7993,7 @@ jobs:
                 已应用音乐音量 = 已应用雨声音量 = 0f;
                 已应用星河音量 = 0f;
               }
-
+          
               synchronized void 暂停全部() {
                 播放代次++;
                 for (AudioTrack track : 活动短音轨道) 暂停短轨道(track);
@@ -7884,7 +8005,7 @@ jobs:
                 已应用音乐音量 = 已应用雨声音量 = 0f;
                 已应用星河音量 = 0f;
               }
-
+          
               synchronized void 释放() {
                 暂停全部();
                 已释放 = true;
@@ -7897,13 +8018,13 @@ jobs:
                 烟花音效缓存 = null;
                 果实音效缓存 = null;
               }
-
+          
               private 循环流音轨 安全创建循环轨道(short[] samples, int contentType, String threadName) {
                 if (samples == null || samples.length == 0 || 已释放) return null;
                 try { return new 循环流音轨(samples, contentType, threadName); }
                 catch (Exception ignored) { return null; }
               }
-
+          
               private float 更新循环轨道(循环流音轨 track, float volume, float 已应用音量) {
                 if (track == null) return 已应用音量;
                 if (已应用音量 < 0f || (volume == 0f && 已应用音量 != 0f)
@@ -7913,7 +8034,7 @@ jobs:
                 }
                 return 已应用音量;
               }
-
+          
               private synchronized boolean 申请短音效槽位(boolean fruit) {
                 // 果实保留两个名额，雷声/烟花最多占两个，不再把拾取反馈挤掉。
                 if (fruit) {
@@ -7925,32 +8046,32 @@ jobs:
                 }
                 return true;
               }
-
+          
               private synchronized void 释放短音效槽位(boolean fruit) {
                 if (fruit) 活动果实音效数 = Math.max(0, 活动果实音效数 - 1);
                 else 活动短音效数 = Math.max(0, 活动短音效数 - 1);
               }
-
+          
               private void 暂停短轨道(AudioTrack track) {
                 if (track == null) return;
                 try { track.setVolume(0f); } catch (Exception ignored) { }
                 try { track.pause(); } catch (Exception ignored) { }
               }
-
+          
               private void 释放短轨道(AudioTrack track) {
                 if (track == null) return;
                 try { track.stop(); } catch (Exception ignored) { }
                 try { track.release(); } catch (Exception ignored) { }
               }
-
+          
               private void 暂停循环轨道(循环流音轨 track) {
                 if (track != null) track.暂停();
               }
-
+          
               private void 释放循环轨道(循环流音轨 track) {
                 if (track != null) track.释放();
               }
-
+          
               private AudioTrack 创建流式短轨道(short[] samples) {
                 int minBuffer = AudioTrack.getMinBufferSize(采样率,
                     AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
@@ -7976,7 +8097,7 @@ jobs:
                   throw error;
                 }
               }
-
+          
               private void 播放果实备用提示音(int 类型) {
                 int tone;
                 switch (类型) {
@@ -7990,7 +8111,7 @@ jobs:
                 }
                 GameView.this.播放音效(tone, 120);
               }
-
+          
               private AudioTrack 创建短轨道(short[] samples) {
                 AudioTrack track = new AudioTrack.Builder()
                     .setAudioAttributes(提示音音频属性)
@@ -8011,7 +8132,7 @@ jobs:
                   throw error;
                 }
               }
-
+          
               // 自编旋律、和声和音色，直接合成 PCM；无网络资源或额外构建文件。
               private short[] 生成主题音乐(boolean galaxy) {
                 int seconds=24, length=采样率*seconds;
@@ -8042,7 +8163,7 @@ jobs:
                 }
                 return out;
               }
-
+          
               private short[] 生成舒缓音乐() {
                 int seconds = 18;
                 int length = 采样率 * seconds;
@@ -8086,7 +8207,7 @@ jobs:
                 }
                 return out;
               }
-
+          
               private short[] 生成绵延细雨() {
                 int seconds = 12;
                 int length = 采样率 * seconds;
@@ -8122,7 +8243,7 @@ jobs:
                 for (int i = 0; i < length; i++) out[i] = (short) (raw[i] * 32767);
                 return out;
               }
-
+          
               private short[] 生成果实音效(int 类型) {
                 // 可闻时长严格为上一版的一半；静音保护独立保留。
                 float[] durations = {0.21f, 0.22f, 0.24f, 0.21f, 0.23f, 0.24f, 0.25f};
@@ -8160,7 +8281,7 @@ jobs:
                 }
                 return out;
               }
-
+          
               private short[] 生成雷声() {
                 int length = (int) (采样率 * 2.20f);
                 short[] out = new short[length];
@@ -8178,7 +8299,7 @@ jobs:
                 }
                 return out;
               }
-
+          
               private short[] 生成烟花音效(int 类型) {
                 float duration = 类型 == 3 ? 1.42f : 1.24f;
                 int length = (int) (采样率 * duration);
@@ -8192,7 +8313,7 @@ jobs:
                 for (int i = 0; i < length; i++) {
                   float t = i / (float) 采样率;
                   float sample = 0f;
-
+          
                   // 逐渐升高但不过分尖锐的升空声。
                   if (t < 0.58f) {
                     float p = t / 0.58f;
@@ -8202,7 +8323,7 @@ jobs:
                     sample += (float) Math.sin(whistlePhase) * env * 0.075f;
                     sample += (float) Math.sin(whistlePhase * 0.50) * env * 0.018f;
                   }
-
+          
                   // 柔和而有厚度的爆开声，避免像刺耳鞭炮。
                   if (t >= 0.54f) {
                     float bt = t - 0.54f;
@@ -8213,7 +8334,7 @@ jobs:
                     sample += (float) Math.sin(bt * Math.PI * 2f * 92f)
                         * burst * 0.035f;
                   }
-
+          
                   // 爆开后的清亮星屑音。
                   for (int k = 0; k < starts.length; k++) {
                     float st = t - starts[k];
@@ -8224,7 +8345,7 @@ jobs:
                           * env * (类型 == 3 ? 0.050f : 0.038f);
                     }
                   }
-
+          
                   float edgeFade = Math.min(1f,
                       Math.min(t / 0.018f, (duration - t) / 0.045f));
                   sample *= Math.max(0f, edgeFade);
@@ -8232,28 +8353,28 @@ jobs:
                 }
                 return out;
               }
-
+          
               private float 靠近(float now, float target, float amount) {
                 if (now < target) return Math.min(target, now + amount);
                 return Math.max(target, now - amount);
               }
             }
-
+          
             private void 准备填充() {
               画笔.setShader(null);
               画笔.setAlpha(255);
             }
-
+          
             private void 纯色(int color) {
               准备填充();
               画笔.setColor(color);
             }
-
+          
             private void 配置描边(int color, float width) {
               描边.setColor(color);
               描边.setStrokeWidth(width);
             }
-
+          
             private void 配置渐变(float x1, float y1, float x2, float y2,
                       int c1, int c2) {
               准备填充();
@@ -8261,7 +8382,7 @@ jobs:
               应用线性渐变矩阵(shader, x1, y1, x2, y2);
               画笔.setShader(shader);
             }
-
+          
             private void 配置多色渐变(float x1, float y1, float x2, float y2,
                        int[] colors, float[] positions) {
               准备填充();
@@ -8269,14 +8390,14 @@ jobs:
               应用线性渐变矩阵(shader, x1, y1, x2, y2);
               画笔.setShader(shader);
             }
-
+          
             private void 设置径向渐变(float x, float y, float radius, int center, int edge) {
               准备填充();
               RadialGradient shader = 获取二色径向渐变(center, edge);
               应用径向渐变矩阵(shader, x, y, Math.max(1f, radius));
               画笔.setShader(shader);
             }
-
+          
             private LinearGradient 获取二色线性渐变(int c1, int c2) {
               long key = ((long) c1 << 32) ^ (c2 & 0xffffffffL);
               int index = 渐变缓存索引(key, 二色渐变缓存容量 - 1);
@@ -8288,7 +8409,7 @@ jobs:
               }
               return 二色线性渐变缓存[index];
             }
-
+          
             private RadialGradient 获取二色径向渐变(int center, int edge) {
               long key = ((long) center << 32) ^ (edge & 0xffffffffL);
               int index = 渐变缓存索引(key, 二色渐变缓存容量 - 1);
@@ -8300,7 +8421,7 @@ jobs:
               }
               return 二色径向渐变缓存[index];
             }
-
+          
             private LinearGradient 获取多色线性渐变(int[] colors, float[] positions) {
               long key = 0xcbf29ce484222325L;
               key = (key ^ colors.length) * 0x100000001b3L;
@@ -8323,14 +8444,14 @@ jobs:
               }
               return 多色线性渐变缓存[index];
             }
-
+          
             private int 渐变缓存索引(long key, int mask) {
               key ^= key >>> 33;
               key *= 0xff51afd7ed558ccdL;
               key ^= key >>> 33;
               return (int) key & mask;
             }
-
+          
             private void 应用线性渐变矩阵(Shader shader,
                         float x1, float y1, float x2, float y2) {
               float dx = x2 - x1;
@@ -8347,7 +8468,7 @@ jobs:
               线性渐变矩阵.setValues(渐变矩阵值);
               shader.setLocalMatrix(线性渐变矩阵);
             }
-
+          
             private void 应用径向渐变矩阵(Shader shader, float x, float y, float radius) {
               渐变矩阵值[0] = radius;
               渐变矩阵值[1] = 0f;
@@ -8361,19 +8482,19 @@ jobs:
               径向渐变矩阵.setValues(渐变矩阵值);
               shader.setLocalMatrix(径向渐变矩阵);
             }
-
+          
             private void 清除着色器() {
               画笔.setShader(null);
               画笔.setAlpha(255);
             }
-
+          
             private void 渐变矩形(Canvas c, float l, float t, float r, float b,
                        int c1, int c2, boolean vertical) {
               配置渐变(l, t, vertical ? l : r, vertical ? b : t, c1, c2);
               c.drawRect(l, t, r, b, 画笔);
               清除着色器();
             }
-
+          
             private void 文本(Canvas c, String text, float x, float y, float size,
                     int color, Paint.Align align, boolean bold) {
               画笔.setShader(null);
@@ -8385,7 +8506,7 @@ jobs:
               画笔.setFakeBoldText(false);
               画笔.setAlpha(255);
             }
-
+          
             private int 循环取色(float phase, int[] colors) {
               float p = phase - (float) Math.floor(phase);
               float scaled = p * colors.length;
@@ -8393,7 +8514,7 @@ jobs:
               int j = (i + 1) % colors.length;
               return 混色(colors[i], colors[j], scaled - (float) Math.floor(scaled));
             }
-
+          
             private int 混色(int a, int b, float t) {
               t = 限制(t, 0f, 1f);
               return Color.argb(
@@ -8403,7 +8524,7 @@ jobs:
                   (int) (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * t)
               );
             }
-
+          
             private int 调亮(int color, float amount) {
               amount = 限制(amount, -1f, 1f);
               int red = Color.red(color);
@@ -8421,12 +8542,12 @@ jobs:
               }
               return Color.argb(Color.alpha(color), red, green, blue);
             }
-
+          
             private int 设透明(int color, int alpha) {
               return Color.argb(限制整数(alpha, 0, 255),
                   Color.red(color), Color.green(color), Color.blue(color));
             }
-
+          
             private int 地图主色() {
               switch (当前地图 == 穿越 ? 穿越当前主题 : 当前地图) {
                 case 经典管道: return 0xFF55BE4D;
@@ -8439,7 +8560,7 @@ jobs:
                 default: return 当前地图 == 穿越 ? 0xFF8EF4FF : 0xFF8E7CFF;
               }
             }
-
+          
             private float 波浪边界(障碍 p, float worldX, boolean top) {
               float[] arr = top ? p.上边界 : p.下边界;
               if (arr == null || arr.length < 2) {
@@ -8448,7 +8569,7 @@ jobs:
               float pos = 限制((worldX - p.x) / Math.max(1f, p.宽度), 0f, 1f);
               return 边界插值(arr, pos);
             }
-
+          
             private float 边界插值(float[] arr, float position) {
               float pos = 限制(position, 0f, 1f) * (arr.length - 1);
               int i = Math.min(arr.length - 2, (int) Math.floor(pos));
@@ -8457,18 +8578,18 @@ jobs:
               float s = t * t * (3f - 2f * t);
               return arr[i] + (arr[i + 1] - arr[i]) * s;
             }
-
-
+          
+          
             private float 蜘蛛X(障碍 p) {
               if (p.蜘蛛垂丝) return p.x + p.宽度 * 0.56f;
               float crawl = 0.5f + 0.5f * (float) Math.sin(p.蜘蛛相位);
               return p.x + p.宽度 * (0.18f + crawl * 0.64f);
             }
-
+          
             private float 蜘蛛锚点Y(障碍 p) {
               return 波浪边界(p, 蜘蛛X(p), p.蜘蛛在上方);
             }
-
+          
             private float 蜘蛛Y(障碍 p) {
               float edge = 蜘蛛锚点Y(p);
               if (p.蜘蛛垂丝) {
@@ -8478,50 +8599,50 @@ jobs:
               }
               return edge + (p.蜘蛛在上方 ? 1f : -1f) * 宽 * 0.014f;
             }
-
+          
             private float 蛇头X(障碍 p) {
               return p.x + p.宽度 * (0.55f - 0.17f * p.蛇伸出量);
             }
-
+          
             private float 蛇头Y(障碍 p) {
               float anchorX = p.x + p.宽度 * 0.55f;
               float edge = 波浪边界(p, anchorX, p.蛇在上方);
               float direction = p.蛇在上方 ? 1f : -1f;
               return edge + direction * (宽 * 0.010f + p.蛇最大伸出 * p.蛇伸出量);
             }
-
+          
             private float 冰刺单齿最大深度(int index) {
               // 在消除必死局后将冰刺视觉与碰撞长度同步增加 5%，补回少量难度。
               return 高 * (0.018f + (index & 1) * 0.010f) * 1.05f;
             }
-
-
-
-
-
+          
+          
+          
+          
+          
             private boolean 圆矩形碰撞(float cx, float cy, float cr,
                          float left, float top, float right, float bottom) {
               float px = 限制(cx, left, right);
               float py = 限制(cy, top, bottom);
               return 距离平方(cx, cy, px, py) < cr * cr;
             }
-
+          
             private float 距离平方(float x1, float y1, float x2, float y2) {
               return 平方(x1 - x2) + 平方(y1 - y2);
             }
-
+          
             private float 平方(float v) {
               return v * v;
             }
-
+          
             private float 限制(float v, float min, float max) {
               return Math.max(min, Math.min(max, v));
             }
-
+          
             private int 限制整数(int v, int min, int max) {
               return Math.max(min, Math.min(max, v));
             }
-
+          
             private float 背景速度倍率() {
               if (状态 != 游戏中) return 1f;
               // 难度和实际游玩时间共同推动背景加速，让视觉速度与障碍速度更统一。
@@ -8534,24 +8655,24 @@ jobs:
               if (花鸟接管中 && 花鸟保护时间 > 0f) base *= 0.55f;
               return 限制(base, 0.60f, 困难模式 ? 3.40f : 2.25f);
             }
-
+          
             private float 平滑循环位置(float value, float range) {
               if (range <= 0f) return value;
               float v = value % range;
               return v < 0 ? v + range : v;
             }
-
+          
             private String 一位小数(float value) {
               int scaled = Math.round(Math.max(0f, value) * 10f);
               return (scaled / 10) + "." + (scaled % 10);
             }
-
+          
             private String 两位小数(float value) {
               int scaled = Math.round(Math.max(0f, value) * 100f);
               int fraction = scaled % 100;
               return (scaled / 100) + "." + (fraction < 10 ? "0" : "") + fraction;
             }
-
+          
             private float 哈希01(int seed, int index) {
               int x = seed ^ (index * 0x45d9f3b);
               x = ((x >>> 16) ^ x) * 0x45d9f3b;
@@ -8559,18 +8680,18 @@ jobs:
               x = (x >>> 16) ^ x;
               return (x & 0x7fffffff) / (float) 0x7fffffff;
             }
-
+          
             private float 平滑步(float t) {
               t = 限制(t, 0f, 1f);
               return t * t * (3f - 2f * t);
             }
-
+          
             private float 缓出(float t) {
               t = 限制(t, 0f, 1f);
               float u = 1f - t;
               return 1f - u * u * u;
             }
-
+          
             private void 推进物理(float dt) {
               物理余时 += dt;
               int steps = 0;
@@ -8581,7 +8702,7 @@ jobs:
               }
               if (状态 != 游戏中) { 物理余时 = 0f; 可插值 = false; }
             }
-
+          
             private void 绘制插值场景(Canvas c) {
               if (!可插值 || 状态 != 游戏中 || 等待首次点击 || 穿越保护中()) { 绘制游戏场景(c); return; }
               float a = 限制(物理余时 / 物理步长, 0f, 1f), ox = 小鸟X, oy = 小鸟Y;
@@ -8596,12 +8717,12 @@ jobs:
                 for (果实 f : 果实组) f.x = f.绘制前X;
               }
             }
-
+          
             private static final float[] 星晶轮廓X = {0f,.12f,.32f,.68f,.88f,1f};
             private static final float[] 星晶轮廓深度 = {.022f,.008f,0f,0f,.008f,.022f};
             private static final float[] 冬晶轮廓X = {0f,.12f,.37f,.60f,.82f,.88f,.96f,1f};
             private static final float[] 冬晶轮廓深度 = {.072f,.026f,0f,.034f,.010f,.026f,.05f,.060f};
-
+          
             private void 建立障碍轮廓(障碍 p, int map) {
               int n = map == 危险山峰 ? 65 : map == 冰天雪地 ? 11 : map == 星河宇宙 ? 6
                   : map == 繁花秘境 && p.花境季节 == 3 ? 8 : 0;
@@ -8618,7 +8739,7 @@ jobs:
                 p.轮廓X[i] = t; p.轮廓上[i] = p.缺口Y - p.缺口高 * .5f + off; p.轮廓下[i] = p.缺口Y + p.缺口高 * .5f - off;
               }
             }
-
+          
             private void 测量安全通道(障碍 p, int map) {
               float top = p.缺口Y - p.缺口高 * .5f, bottom = p.缺口Y + p.缺口高 * .5f;
               if (p.轮廓上 != null) {
@@ -8636,13 +8757,13 @@ jobs:
               }
               p.安全上 = top + 小鸟半径 + 高 * .004f; p.安全下 = bottom - 小鸟半径 - 高 * .004f;
             }
-
+          
             private void 移动缺口(障碍 p, float dy, float extra) {
               p.缺口Y += dy; p.缺口高 += extra;
               if (p.上边界 != null) for (int i = 0; i < p.上边界.length; i++) { p.上边界[i] += dy - extra*.5f; p.下边界[i] += dy + extra*.5f; }
               if (p.轮廓上 != null) for (int i = 0; i < p.轮廓上.length; i++) { p.轮廓上[i] += dy - extra*.5f; p.轮廓下[i] += dy + extra*.5f; }
             }
-
+          
             private void 校正可通行空间(障碍 p, int map) {
               float progress = 当前速度进度(), jump = 高*.558f*(1f-.20f*progress);
               float gravity = 高*2.222f*(.99f+.12f*progress), needed = jump*jump/(2f*gravity)+高*.012f;
@@ -8660,7 +8781,7 @@ jobs:
               float dy = p.安全上 < 高*.14f ? 高*.14f-p.安全上 : p.安全下 > 地面线-高*.08f ? 地面线-高*.08f-p.安全下 : 0f;
               if (dy != 0) { 移动缺口(p,dy,0f); 测量安全通道(p,map); }
             }
-
+          
             private void 构建柱体轮廓(障碍 p, boolean upper, boolean closed, Path path) {
               float[] a = upper ? p.轮廓上 : p.轮廓下; path.reset(); if (a == null) return;
               float shift = !upper && 生效地图() == 冰天雪地 ? -p.缺口高*.10f*雪崩强度 : 0f;
@@ -8668,12 +8789,12 @@ jobs:
               for (int i=1;i<a.length;i++) path.lineTo(p.x+p.宽度*p.轮廓X[i],a[i]+shift);
               if (closed) { float edge = upper ? -高*.02f : 地面线+高*.02f; path.lineTo(p.x+p.宽度,edge); path.lineTo(p.x,edge); path.close(); }
             }
-
+          
             private float 点线段距离平方(float x,float y,float ax,float ay,float bx,float by) {
               float dx=bx-ax,dy=by-ay,t=限制(((x-ax)*dx+(y-ay)*dy)/Math.max(.0001f,dx*dx+dy*dy),0f,1f);
               return 距离平方(x,y,ax+t*dx,ay+t*dy);
             }
-
+          
             private boolean 圆轮廓碰撞(障碍 p,boolean upper,float x,float y,float r) {
               float[] a=upper?p.轮廓上:p.轮廓下;
               float shift=!upper && 生效地图()==冰天雪地?-p.缺口高*.10f*雪崩强度:0f;
@@ -8688,13 +8809,13 @@ jobs:
               return 点线段距离平方(x,y,p.x,end,p.x,a[0]+shift)<r*r
                   ||点线段距离平方(x,y,p.x+p.宽度,end,p.x+p.宽度,a[a.length-1]+shift)<r*r;
             }
-
+          
             private boolean 圆圆角矩形碰撞(float x,float y,float r,float l,float t,float rr,float b,float corner) {
               corner=Math.min(corner,Math.min(rr-l,b-t)*.5f);
               float dx=x-限制(x,l+corner,rr-corner),dy=y-限制(y,t+corner,b-corner);
               return dx*dx+dy*dy<(r+corner)*(r+corner);
             }
-
+          
             private boolean 障碍端碰撞(障碍 p,boolean upper,float x,float y,float r) {
               if(p.轮廓上!=null)return 圆轮廓碰撞(p,upper,x,y,r);
               int map=生效地图(); float edge=p.缺口Y+(upper?-.5f:.5f)*p.缺口高;
@@ -8705,14 +8826,14 @@ jobs:
               else if(map==新春){over=.15f;cap=.023f;}else if(map==海洋世界){over=.10f;cap=.022f;}else return false;
               return 圆圆角矩形碰撞(x,y,r,p.x-p.宽度*over,upper?edge-高*cap:edge,p.x+p.宽度*(1f+over),upper?edge:edge+高*cap,p.宽度*(map==黑暗丛林?.14f:map==新春?.10f:.12f));
             }
-
+          
             private boolean 位置可通行(float x,float y) {
               float r=当前小鸟半径();
               for(障碍 p:障碍组)if(!p.已破碎 && p.x-p.宽度*.16f<=x+r && p.x+p.宽度*1.16f>=x-r
                   && (障碍端碰撞(p,true,x,y,r)||障碍端碰撞(p,false,x,y,r)))return false;
               return true;
             }
-
+          
             private float 选择事件高度(float eta,float enemyRadius,float side) {
               float lo=高*.18f,hi=地面线-高*.12f,speed=宽*.335f*Math.min(当前最高速度(),难度倍率+.03f);
               float travel=speed*(eta-.57f*Math.min(冻结时间,eta));
@@ -8729,17 +8850,17 @@ jobs:
               if(hi-lo<当前小鸟半径()+enemyRadius+高*.025f)return Float.NaN;
               return side<0f?lo:hi;
             }
-
-
+          
+          
             private float 缓动(float value) {
               float t = 限制(value, 0f, 1f); return t * t * (3f - 2f * t);
             }
-
+          
             private float 当前藤蔓覆盖() {
               float season = 四季相位 * 4f;
               return season < 1f ? .5f : season < 2f ? .5f + .5f * 缓动((season - 1f) / .30f) : 1f;
             }
-
+          
             private void 绘制切面晶体(Canvas c, 障碍 p, int theme) {
               float x = p.x, pw = p.宽度;
               for (int side = 0; side < 2; side++) {
@@ -8817,7 +8938,7 @@ jobs:
                 }
               }
             }
-
+          
             private void 绘制花境柱底(Canvas c, 障碍 p, float top, float bottom) {
               float x = p.x, pw = p.宽度;
               配置渐变(x, 0, x + pw, 0, 0xFF376F68, 0xFFB5D48C);
@@ -8833,7 +8954,7 @@ jobs:
               c.drawRoundRect(x, -高*.02f, x+pw, top, pw*.28f, pw*.28f, 描边);
               c.drawRoundRect(x, bottom, x+pw, 地面线+高*.02f, pw*.28f, pw*.28f, 描边);
             }
-
+          
             private android.graphics.Picture 记录藤蔓(障碍 p, int layer) {
               android.graphics.Picture picture = new android.graphics.Picture();
               Canvas c = picture.beginRecording((int)(p.宽度 * 1.4f + 4), 高);
@@ -8878,7 +8999,7 @@ jobs:
               } finally { p.x=oldX; picture.endRecording(); }
               return picture;
             }
-
+          
             private void 绘制生长层(Canvas c, 障碍 p, android.graphics.Picture picture, float coverage, float opacity) {
               if (opacity <= .001f) return;
               c.save(); c.translate(p.x,0);
@@ -8894,7 +9015,7 @@ jobs:
               }
               c.restore();
             }
-
+          
             private void 绘制四季过渡(Canvas c) {
               float phase=四季相位*4f;
               if(phase<2f)return;
@@ -8918,8 +9039,8 @@ jobs:
                     设透明(i%2==0?0xFFECC574:0xFFD89869,(int)(alpha*135*Math.sin(t*Math.PI))));
               }
             }
-
-
+          
+          
             private void 更新银河漩涡(float dt) {
               if(生效地图()!=星河宇宙) {银河漩涡时间=银河漩涡时长=0;return;}
               if(银河漩涡时长>0) {
@@ -8934,11 +9055,11 @@ jobs:
                 银河漩涡中心Y=.24f+视觉随机.nextFloat()*.16f;
               }
             }
-
+          
             private float 银河漩涡透明度() {
               return 银河漩涡时长<=0?0f:缓动(银河漩涡时间/4f)*缓动((银河漩涡时长-银河漩涡时间)/4f);
             }
-
+          
             private void 绘制银河漩涡(Canvas c) {
               float alpha=银河漩涡透明度(); if(alpha<=.001f)return;
               if(银河旋臂[0]==null) for(int arm=0;arm<3;arm++) {
@@ -8974,8 +9095,8 @@ jobs:
               应用径向渐变矩阵(core,0,0,.23f);画笔.setShader(core);
               c.drawCircle(0,0,.23f,画笔);清除着色器();c.restore();
             }
-
-
+          
+          
             private static class 障碍 {
               float x, 绘制前X;
               int 花境季节;
@@ -9020,7 +9141,7 @@ jobs:
               float 蜘蛛相位;
               int 蜘蛛状态;
             }
-
+          
             private static class 果实 {
               float x, 绘制前X;
               float y;
@@ -9030,7 +9151,7 @@ jobs:
               int 类型;
               boolean 已吃;
             }
-
+          
             private static class 粒子 {
               float x;
               float y;
@@ -9045,7 +9166,7 @@ jobs:
               int 颜色;
               boolean 方形;
             }
-
+          
             private static class 浮字 {
               float x;
               float y;
@@ -9054,7 +9175,7 @@ jobs:
               String 文字;
               int 颜色;
             }
-
+          
             private static class 烟花 {
               float 起点X;
               float 起点Y;
@@ -9067,7 +9188,7 @@ jobs:
               int 类型;
               int 种子;
             }
-
+          
             private static class 虫洞 {
               float x;
               float y;
@@ -9077,7 +9198,7 @@ jobs:
               float 自动触发倒计时;
               boolean 大型;
             }
-
+          
             private static class 新春烟雾 {
               float x;
               float y;
