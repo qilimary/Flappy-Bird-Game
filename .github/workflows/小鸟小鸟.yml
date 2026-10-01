@@ -88,8 +88,8 @@ jobs:
                   applicationId "com.qili.fruitflight"
                   minSdk 23
                   targetSdk 35
-                  versionCode 19
-                  versionName "19.0"
+                  versionCode 20
+                  versionName "20.0"
               }
 
               compileOptions {
@@ -644,6 +644,7 @@ jobs:
             private float 幸运星旋转;
             private float 幸运星守护时间;
             private boolean 幸运星复活可用;
+            private int 本局复活次数;
             private float 幸运星复活光环时间;
             private float 幸运星清障时间;
           
@@ -1201,7 +1202,7 @@ jobs:
           
               猎手状态 = 0;
               猎手碰到 = false;
-              猎手冷却 = NPC冷却(5.2f + 随机.nextFloat() * 4.0f);
+              猎手冷却 = NPC冷却(6.0f + 随机.nextFloat() * 4.4f);
               龙状态 = 0;
               龙碰到 = false;
               龙方向 = -1;
@@ -1231,9 +1232,10 @@ jobs:
               // 特殊流星是低频事件，通常一局需要较长时间才会遇到。
               流星冷却 = NPC冷却(17f + 随机.nextFloat() * 13f);
               幸运星状态 = 0;
-              幸运星冷却 = 34f + 随机.nextFloat() * 24f;
+              幸运星冷却 = 38f + 随机.nextFloat() * 26f;
               幸运星守护时间 = 0f;
               幸运星复活可用 = false;
+              本局复活次数 = 0;
               幸运星复活光环时间 = 0f;
               幸运星清障时间 = 0f;
           
@@ -1278,7 +1280,7 @@ jobs:
               缺口高 *= 0.90f;
               缺口高 *= 0.95f;
               缺口高 *= 0.85f;
-              // 名义通道再收窄 3%；后续仍按鸟体、冰刺、雪崩和相邻障碍校正安全空间。
+              // 名义通道再收窄 3%；后续仍按鸟体、冰刺和相邻障碍校正安全空间。
               缺口高 *= 0.97f;
               // 冰刺加入真实碰撞后，冰雪地图把原始管道缺口放宽 20%。
               // 刺尖仍会占据其中一部分，所以实际可通行空间只比旧版略窄，整体难度小幅提高。
@@ -1292,7 +1294,7 @@ jobs:
               } else {
                 候选Y = 高 * (0.33f + 随机.nextFloat() * 0.34f);
                 float 最大变化 = 高 * (0.13f + 进度 * 0.025f);
-                // 冰雪地图同时存在冰刺和雪崩，限制连续管道的垂直跳变，避免最高速出现理论必死局。
+                // 冰雪地图有真实冰刺碰撞，限制连续管道的垂直跳变，避免最高速出现理论必死局。
                 if (有效地图 == 冰天雪地) {
                   最大变化 = Math.min(最大变化, 高 * 0.12f);
                 }
@@ -1562,6 +1564,8 @@ jobs:
                 // 基础下坠加速度提高 10%。
                 float 重力 = 高 * 2.222f * (0.99f + 0.12f * 速度进度);
                 if (冻结时间 > 0f) 重力 *= 0.68f;
+                float 复活缓落 = 冲刺时间 <= 0f ? 平滑步(幸运星清障时间 / 0.5f) : 0f;
+                if (小鸟速度Y >= 0f) 重力 *= 1f - 0.78f * 复活缓落;
                 if (冲刺时间 > 0f) {
                   // 冲刺时仍受重力影响，但会主动向屏幕中部修正：
                   // 位置偏下时向上抬升，位置偏上时向下回落。
@@ -1573,6 +1577,10 @@ jobs:
                   小鸟速度Y += 冲刺纵向偏差 * dt * 9.0f;
                 }
                 小鸟速度Y += 重力 * dt;
+                if (复活缓落 > 0f && 小鸟速度Y > 0f) {
+                  // 末半秒平滑恢复正常下坠，上升力度不变，避免保护结束时突然加速。
+                  小鸟速度Y = Math.min(小鸟速度Y, 高 * (0.14f + 0.32f * (1f - 复活缓落)));
+                }
                 小鸟Y += 小鸟速度Y * dt;
                 小鸟旋转 = 限制(小鸟速度Y / (高 * 0.80f) * 45f, -28f, 74f);
               }
@@ -1836,7 +1844,7 @@ jobs:
                 }
                 float 目标 = 冰雹中 ? 1f : 0f;
                 冰雹强度 += 限制(目标 - 冰雹强度, -dt * 0.18f, dt * 0.18f);
-                // 冰雹带来雪崩：快速堆积；冰雹结束后约一秒内从上向下退去。
+                // 大雪带来背景积雪，结束后从上向下退去；不再改变柱子和通道。
                 float 雪崩目标 = 冰雹中 ? 1f : 0f;
                 float 雪崩速度 = 雪崩目标 > 雪崩强度 ? dt * 0.58f : dt * 1.05f;
                 雪崩强度 += 限制(雪崩目标 - 雪崩强度, -雪崩速度, 雪崩速度);
@@ -1965,7 +1973,7 @@ jobs:
             }
           
             private void 更新幸运星(float dt) {
-              if (生效地图() != 星河宇宙 || 穿越保护中()) {
+              if (生效地图() != 星河宇宙 || 穿越保护中() || 本局复活次数 >= 2) {
                 幸运星状态 = 0;
                 return;
               }
@@ -2003,7 +2011,7 @@ jobs:
                 幸运星状态 = 0;
                 幸运星守护时间 = 10f;
                 幸运星复活可用 = true;
-                幸运星冷却 = 48f + 随机.nextFloat() * 32f;
+                幸运星冷却 = 54f + 随机.nextFloat() * 34f;
                 boolean 首次计入终章 = !终章幸运星已收集;
                 if (首次计入终章) {
                   终章幸运星已收集 = true;
@@ -2022,7 +2030,7 @@ jobs:
                 播放音效(ToneGenerator.TONE_PROP_ACK, 125);
               } else if (幸运星X < -宽 * 0.30f || 幸运星Y > 地面线 + 高 * 0.12f) {
                 幸运星状态 = 0;
-                幸运星冷却 = 36f + 随机.nextFloat() * 30f;
+                幸运星冷却 = 40f + 随机.nextFloat() * 32f;
               }
             }
           
@@ -2294,12 +2302,20 @@ jobs:
             }
           
             private void 更新猎手(float dt) {
+              // 减速或起跳受限时不叠加袭击，已预警、已出手的猎手也立即撤回。
+              if (冻结时间 > 0f || 冰冻跳跃削弱时间 > 0f
+                  || (中毒时间 > 0f && 中毒跳跃倍率 < 1f)) {
+                猎手状态 = 0;
+                猎手碰到 = false;
+                猎手冷却 = Math.max(猎手冷却, 0.9f);
+                return;
+              }
               if (障碍危险暂停中()) return;
               if (猎手状态 == 0) {
                 猎手冷却 -= dt;
                 if (猎手冷却 > 0f || 冲刺时间 > 0f) return;
           
-                // 仍然避开最拥挤的紧邻障碍，防止出现无解组合；除此之外明显提高出场频率和压迫感。
+                // 保留正常袭击的压迫感，但跳过最拥挤的紧邻障碍。
                 障碍 威胁 = 寻找前方障碍(宽 * 0.20f, 宽 * 1.02f);
                 if (威胁 != null && 威胁.紧邻组) {
                   猎手冷却 = 0.65f;
@@ -2349,7 +2365,7 @@ jobs:
                 }
                 if (猎手X < -宽 * 0.22f) {
                   猎手状态 = 0;
-                  猎手冷却 = NPC冷却(5.8f + 随机.nextFloat() * 4.2f);
+                  猎手冷却 = NPC冷却(6.6f + 随机.nextFloat() * 4.6f);
                 }
               }
             }
@@ -2625,9 +2641,9 @@ jobs:
               剩余生命--;
               int 本次扣分 = 0;
               boolean 本次触发幸运星复活 = 剩余生命 <= 0 && 幸运星复活可用
-                  && 幸运星守护时间 > 0f;
+                  && 幸运星守护时间 > 0f && 本局复活次数 < 2;
               boolean 本次触发花鸟复活 = 剩余生命 <= 0 && !本次触发幸运星复活
-                  && 花鸟复活可用 && !花鸟接管中;
+                  && 花鸟复活可用 && !花鸟接管中 && 本局复活次数 < 2;
               // 游戏仍能继续时才按丢命扣分；幸运星复活不扣分。
               if (设定生命 > 1 && !本次触发幸运星复活
                   && (剩余生命 > 0 || 本次触发花鸟复活)) {
@@ -2670,10 +2686,14 @@ jobs:
             }
           
             private void 启用幸运星复活() {
+              if (本局复活次数 >= 2) return;
+              本局复活次数++;
               幸运星复活可用 = false;
               幸运星守护时间 = 0f;
               幸运星复活光环时间 = 1.5f;
               幸运星清障时间 = 1.5f;
+              冻结时间 = 冰冻跳跃削弱时间 = 0f;
+              if (本局复活次数 >= 2) 花鸟复活可用 = false;
               剩余生命 = 1;
               小鸟X = 宽 * 0.32f;
               小鸟Y = 限制(小鸟Y, 高 * 0.34f, 高 * 0.56f);
@@ -2682,11 +2702,18 @@ jobs:
               清空屏幕危险();
               生成爆裂(小鸟X, 小鸟Y, 0xFFFFE77A, 42);
               生成浮字(宽 * 0.5f, 高 * 0.34f,
-                  "幸运星复活 · 清障1.5秒", 0xFFFFEE9A);
+                  "幸运星复活", 0xFFFFEE9A);
               播放音效(ToneGenerator.TONE_PROP_ACK, 150);
             }
           
             private void 启用花鸟接管() {
+              if (本局复活次数 >= 2) return;
+              本局复活次数++;
+              if (本局复活次数 >= 2) {
+                幸运星复活可用 = false;
+                幸运星守护时间 = 0f;
+                幸运星状态 = 0;
+              }
               花鸟复活可用 = false;
               花鸟存在 = false;
               花鸟接管中 = true;
@@ -2721,16 +2748,20 @@ jobs:
                   冲刺居中过渡 = 0f;
                 }
                 冲刺时间 = Math.max(冲刺时间, 2.2f);
+                // 冲刺清除已有的小鸟冰冻影响，结束后也不恢复旧计时。
+                冻结时间 = 0f;
+                冰冻跳跃削弱时间 = 0f;
                 小鸟速度Y *= 0.25f;
                 文字 = f.类型 == 随机果实 ? "随机：烈焰冲刺！" : "烈焰冲刺 2.2秒";
                 颜色 = 0xFFFF5A45;
               } else if (真正类型 == 冻结果实) {
                 山峰危险冻结时间 = Math.max(山峰危险冻结时间, 2.5f);
-                // 无论是否正处于冲刺免疫世界减速，冰冻果实都会降低一段时间的主动跳跃高度。
-                冰冻跳跃削弱时间 = Math.max(冰冻跳跃削弱时间, 2.5f);
                 if (冲刺时间 > 0f) {
-                  文字 = (f.类型 == 随机果实 ? "随机：冰封全场！" : "冰封全场 2.5秒") + " · 冲刺中免疫减速";
+                  冻结时间 = 0f;
+                  冰冻跳跃削弱时间 = 0f;
+                  文字 = (f.类型 == 随机果实 ? "随机：冰封全场！" : "冰封全场 2.5秒") + " · 冲刺免疫冰冻";
                 } else {
+                  冰冻跳跃削弱时间 = Math.max(冰冻跳跃削弱时间, 2.5f);
                   冻结时间 = Math.max(冻结时间, 2.5f);
                   文字 = f.类型 == 随机果实 ? "随机：冰封全场！" : "冰封全场 2.5秒";
                 }
@@ -2747,13 +2778,14 @@ jobs:
                 颜色 = 0xFF4DFFBB;
               } else if (真正类型 == 花朵果实) {
                 花鸟存在 = true;
-                花鸟复活可用 = true;
+                花鸟复活可用 = 本局复活次数 < 2;
                 花鸟X = 小鸟X - 宽 * 0.15f;
                 花鸟Y = 小鸟Y + 高 * 0.025f;
                 花鸟速度X = 0f;
                 花鸟速度Y = 小鸟速度Y * 0.35f;
                 花鸟旋转 = 小鸟旋转 * 0.55f;
-                文字 = "花朵小鸟加入 · 获得一次接管机会";
+                文字 = 花鸟复活可用 ? "花朵小鸟加入 · 获得一次接管机会"
+                    : "花朵小鸟加入 · 本局复活次数已用完";
                 颜色 = 0xFFFF9ACB;
               } else {
                 int 烟花类型 = 随机.nextInt(3);
@@ -2867,7 +2899,7 @@ jobs:
               // 抛体高度与初速度平方成正比，因此起跳速度乘 sqrt(0.90) ≈ 0.94868。
               if (困难模式) 小鸟速度Y *= 0.9486833f;
               // 冻结果实期间明显压低主动起跳力度；配合较低重力后，实际跳跃高度约降低四成。
-              if (冰冻跳跃削弱时间 > 0f) 小鸟速度Y *= 0.64f;
+              if (冲刺时间 <= 0f && 冰冻跳跃削弱时间 > 0f) 小鸟速度Y *= 0.64f;
               if (中毒时间 > 0f) 小鸟速度Y *= 中毒跳跃倍率;
               拍翅淡化 = 1f;
               生成翅膀粒子();
@@ -5186,10 +5218,6 @@ jobs:
             private void 绘制障碍(Canvas c, 障碍 p) {
               float top = p.缺口Y - p.缺口高 * 0.5f;
               float bottom = p.缺口Y + p.缺口高 * 0.5f;
-              if (生效地图() == 冰天雪地) {
-                // 绘制与碰撞保持一致：雪崩最多压缩 10% 通道。
-                bottom -= p.缺口高 * 0.10f * 雪崩强度;
-              }
               if (p.已破碎) {
                 绘制破碎残段(c, p, top, bottom);
                 return;
@@ -6540,7 +6568,7 @@ jobs:
               if (幸运星守护时间 > 0f) effectX = 绘制效果徽章(c, effectX, effectY,
                   效果倒计时文本(8, "幸运星 ", 幸运星守护时间), 0xDDAE8A24);
               if (幸运星清障时间 > 0f) effectX = 绘制效果徽章(c, effectX, effectY,
-                  效果倒计时文本(9, "复活清障 ", 幸运星清障时间), 0xDDAE8A24);
+                  效果倒计时文本(9, "幸运星复活 ", 幸运星清障时间), 0xDDAE8A24);
               if (蹿天猴清障时间 > 0f) effectX = 绘制效果徽章(c, effectX, effectY,
                   效果倒计时文本(10, "蹿天猴清场 ", 蹿天猴清障时间), 0xDDAA4A25);
               if (花鸟接管中 && 花鸟保护时间 > 0f) {
@@ -6735,7 +6763,7 @@ jobs:
               switch (当前地图) {
                 case 经典管道: return "清新原野 · 致敬经典 · 舒缓音乐";
                 case 危险山峰: return "连续波峰 · 缠峰绿蛇 · 中毒蜘蛛";
-                case 冰天雪地: return "稳定冰山 · 低频冰雹 · 雪崩压缩通道";
+                case 冰天雪地: return "稳定冰山 · 漫天大雪 · 柔和极光";
                 case 黑暗丛林: return "幽影猎手 · 绵延细雨 · 阴森古堡";
                 case 繁花秘境:
                   return "四季花海 · 花朵小鸟 · 稀有花鸟守护";
@@ -6826,19 +6854,28 @@ jobs:
                   r * 0.05f, r * 0.05f, 画笔);
             }
           
-            private void 绘制旧版雪花图标(Canvas c, float x, float y, float r, int color, float stroke) {
-              配置描边(color, stroke);
-              for (int i = 0; i < 3; i++) {
-                float a = i * 1.0472f, dx = (float) Math.cos(a) * r, dy = (float) Math.sin(a) * r;
-                c.drawLine(x - dx, y - dy, x + dx, y + dy, 描边);
-                for (int sign = -1; sign <= 1; sign += 2) {
-                  float bx = x + dx * 0.55f * sign, by = y + dy * 0.55f * sign, branch = r * 0.24f;
-                  float a1 = a + (sign > 0 ? 2.45f : -0.69f);
-                  float a2 = a + (sign > 0 ? -2.45f : 0.69f);
-                  c.drawLine(bx, by, bx + (float) Math.cos(a1) * branch, by + (float) Math.sin(a1) * branch, 描边);
-                  c.drawLine(bx, by, bx + (float) Math.cos(a2) * branch, by + (float) Math.sin(a2) * branch, 描边);
+            private void 绘制卡片雪花(Canvas c, float x, float y, float r, int color, float stroke) {
+              配置描边(color, stroke * 0.70f);
+              路径.reset();
+              for (int arm = 0; arm < 6; arm++) {
+                float a = arm * 1.0471976f - 1.5707963f;
+                float dx = (float) Math.cos(a), dy = (float) Math.sin(a);
+                路径.moveTo(x + dx * r * 0.12f, y + dy * r * 0.12f);
+                路径.lineTo(x + dx * r, y + dy * r);
+                for (int j = 0; j < 2; j++) {
+                  float pos = j == 0 ? 0.44f : 0.71f;
+                  float branch = r * (j == 0 ? 0.23f : 0.17f);
+                  float bx = x + dx * r * pos, by = y + dy * r * pos;
+                  for (int side = -1; side <= 1; side += 2) {
+                    float angle = a + side * 1.0471976f;
+                    路径.moveTo(bx, by);
+                    路径.lineTo(bx + (float) Math.cos(angle) * branch,
+                        by + (float) Math.sin(angle) * branch);
+                  }
                 }
               }
+              c.drawPath(路径, 描边);
+              纯色(color); c.drawCircle(x, y, r * 0.085f, 画笔);
             }
           
             private void 绘制地图图标(Canvas c, int map, float x, float y, float h) {
@@ -6888,7 +6925,7 @@ jobs:
                   c.drawPath(路径, 描边);
                 }
               } else if (map == 冰天雪地) {
-                绘制旧版雪花图标(c, x, y, 宽 * 0.043f, Color.WHITE, 宽 * 0.005f);
+                绘制卡片雪花(c, x, y, 宽 * 0.043f, Color.WHITE, 宽 * 0.005f);
               } else if (map == 黑暗丛林) {
                 纯色(0xFF071B18);
                 c.drawRoundRect(x - 宽 * 0.013f, y - h * 0.05f,
@@ -6989,7 +7026,7 @@ jobs:
               y = 绘制说明行(c, y, "丛林", "幽影猎手、绵延细雨；两倍速后可能进入阴森古堡。", 0xFF8BE0AD);
               y = 绘制说明行(c, y, "繁花", "四季花海，极低概率出现花朵果实。", 0xFFFFA9CF);
               y = 绘制说明行(c, y, "新春", "中国风、烟火、烟花彩蛋与游龙。", 0xFFFFD27B);
-              y = 绘制说明行(c, y, "星河", "星空、背景流星与特殊流星。", 0xFFB9B2FF);
+              y = 绘制说明行(c, y, "星河", "星空、流星与幸运星；每局最多复活两次。", 0xFFB9B2FF);
           
               文本(c, "系统会尽量避免必死局出现，但仍然可能出现极为复杂的难解局面。",
                   宽 * 0.5f, 高 * 0.895f, 宽 * 0.0230f,
@@ -8746,7 +8783,6 @@ jobs:
                 top = -高; bottom = 高 * 2;
                 for (int i = 0; i < p.轮廓上.length; i++) { top = Math.max(top,p.轮廓上[i]); bottom = Math.min(bottom,p.轮廓下[i]); }
               }
-              if (map == 冰天雪地) bottom -= p.缺口高 * .10f;
               if (p.有蛇 && !p.蛇不袭击) {
                 float reach = p.蛇最大伸出 + 宽 * .031f;
                 if (p.蛇在上方) top += reach; else bottom -= reach;
@@ -8769,7 +8805,7 @@ jobs:
               float gravity = 高*2.222f*(.99f+.12f*progress), needed = jump*jump/(2f*gravity)+高*.012f;
               测量安全通道(p,map);
               float missing = needed - p.安全下 + p.安全上;
-              if (missing > 0f) { 移动缺口(p,0f,missing/(map == 冰天雪地 ? .9f : 1f)); 测量安全通道(p,map); }
+              if (missing > 0f) { 移动缺口(p,0f,missing); 测量安全通道(p,map); }
               障碍 prev = 上次生成障碍;
               if (prev != null) {
                 float free = Math.max(0f,(p.x-prev.x-prev.宽度-小鸟半径*2f-宽*.05f)/(宽*.335f*Math.min(当前最高速度(),难度倍率+.10f)));
@@ -8784,9 +8820,8 @@ jobs:
           
             private void 构建柱体轮廓(障碍 p, boolean upper, boolean closed, Path path) {
               float[] a = upper ? p.轮廓上 : p.轮廓下; path.reset(); if (a == null) return;
-              float shift = !upper && 生效地图() == 冰天雪地 ? -p.缺口高*.10f*雪崩强度 : 0f;
-              path.moveTo(p.x,a[0]+shift);
-              for (int i=1;i<a.length;i++) path.lineTo(p.x+p.宽度*p.轮廓X[i],a[i]+shift);
+              path.moveTo(p.x,a[0]);
+              for (int i=1;i<a.length;i++) path.lineTo(p.x+p.宽度*p.轮廓X[i],a[i]);
               if (closed) { float edge = upper ? -高*.02f : 地面线+高*.02f; path.lineTo(p.x+p.宽度,edge); path.lineTo(p.x,edge); path.close(); }
             }
           
@@ -8797,17 +8832,16 @@ jobs:
           
             private boolean 圆轮廓碰撞(障碍 p,boolean upper,float x,float y,float r) {
               float[] a=upper?p.轮廓上:p.轮廓下;
-              float shift=!upper && 生效地图()==冰天雪地?-p.缺口高*.10f*雪崩强度:0f;
               for(int i=1;i<a.length;i++) {
                 float ax=p.x+p.宽度*p.轮廓X[i-1],bx=p.x+p.宽度*p.轮廓X[i];
                 if(bx<x-r || ax>x+r) continue;
-                float ay=a[i-1]+shift,by=a[i]+shift;
+                float ay=a[i-1],by=a[i];
                 if(x>=ax && x<=bx) { float edge=ay+(by-ay)*((x-ax)/Math.max(.001f,bx-ax)); if(upper?y<=edge:y>=edge)return true; }
                 if(点线段距离平方(x,y,ax,ay,bx,by)<r*r)return true;
               }
               float end=upper?-高:高*2f;
-              return 点线段距离平方(x,y,p.x,end,p.x,a[0]+shift)<r*r
-                  ||点线段距离平方(x,y,p.x+p.宽度,end,p.x+p.宽度,a[a.length-1]+shift)<r*r;
+              return 点线段距离平方(x,y,p.x,end,p.x,a[0])<r*r
+                  ||点线段距离平方(x,y,p.x+p.宽度,end,p.x+p.宽度,a[a.length-1])<r*r;
             }
           
             private boolean 圆圆角矩形碰撞(float x,float y,float r,float l,float t,float rr,float b,float corner) {
@@ -8866,7 +8900,6 @@ jobs:
               for (int side = 0; side < 2; side++) {
                 boolean upper = side == 0;
                 float edge = p.缺口Y + (upper ? -.5f : .5f) * p.缺口高;
-                if (!upper && theme == 0) edge -= p.缺口高 * .10f * 雪崩强度;
                 float root = upper ? 0f : 地面线, dir = upper ? -1f : 1f;
                 // 光环后半先绘制，再由实体遮挡；前半在实体之后绘制。
                 float ringY = edge + dir * 高 * .082f;
@@ -8893,13 +8926,12 @@ jobs:
                 c.drawLine(x + pw * .68f, edge, x + pw * .86f, root, 描边);
                 // 端部每一个切面与同一份碰撞折线共用顶点，消除悬空尖角。
                 float[] ys = upper ? p.轮廓上 : p.轮廓下;
-                float shift = !upper && theme == 0 ? -p.缺口高 * .10f * 雪崩强度 : 0;
                 for (int i = 1; i < ys.length; i++) {
                   float ax = x + pw * p.轮廓X[i-1], bx = x + pw * p.轮廓X[i];
                   纯色(i % 2 == 0 ? (theme == 2 ? 0xAAE2D8FF : 0xDDDFFCFF)
                       : (theme == 2 ? 0xBB84D7E7 : 0xBB9FD9F1));
-                  路径.reset(); 路径.moveTo(ax, ys[i-1] + shift);
-                  路径.lineTo(bx, ys[i] + shift);
+                  路径.reset(); 路径.moveTo(ax, ys[i-1]);
+                  路径.lineTo(bx, ys[i]);
                   路径.lineTo((ax + bx) * .5f, edge + dir * 高 * .070f);
                   路径.close(); c.drawPath(路径, 画笔);
                 }
@@ -8923,7 +8955,7 @@ jobs:
                   lastX = sx; lastY = sy;
                 }
                 if (theme != 2) {
-                  float frost = theme == 0 ? 雪崩强度 : 缓动((四季相位 * 4f - 3f) / .22f);
+                  float frost = theme == 0 ? 0f : 缓动((四季相位 * 4f - 3f) / .22f);
                   配置描边(设透明(0xFFF1FCFF, (int)(80 + frost * 155)), 高 * (.004f + frost * .004f));
                   构建柱体轮廓(p, upper, false, 路径); c.drawPath(路径, 描边);
                 }
